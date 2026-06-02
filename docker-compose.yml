@@ -1,3 +1,5 @@
+# Local infrastructure only. The apps (web + api) run on the host via
+# `pnpm dev`; Docker provides the Postgres database.
 services:
   db:
     image: postgres:17-alpine
@@ -15,22 +17,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: 3001
-      DATABASE_URL: postgres://postgres:postgres@db:5432/app
-      CORS_ORIGIN: http://localhost:3000
-    ports:
-      - "3001:3001"
 
 volumes:
   pgdata:

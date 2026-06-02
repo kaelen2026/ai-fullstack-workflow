@@ -1,8 +1,0 @@
-node_modules
-dist
-.turbo
-.next
-*.log
-.env
-.env.*
-.git

@@ -7,7 +7,7 @@ A type-safe full-stack monorepo powered by [Turborepo](https://turbo.build) and 
 | App / Package              | Tech                                                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `apps/web`                 | Next.js 16 (App Router) · Tailwind CSS v4 · shadcn/ui · React Query      |
-| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM (Postgres) · Docker                  |
+| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM · Postgres (Docker)                  |
 | `packages/typescript-config` | Shared `tsconfig` presets                                             |
 
 Tooling: **Biome** (lint + format), **husky** + **lint-staged** (git hooks),
@@ -71,14 +71,17 @@ pnpm db:migrate    # applies it
 
 ## Docker
 
-The API ships as a minimal, fully-bundled image (built with `tsup`, no
-`node_modules` at runtime). The build context is the monorepo root:
+Docker provides the **Postgres database** for local development; the apps run
+on the host via `pnpm dev`.
 
 ```bash
-docker compose up --build        # Postgres + API
-# or build the image alone:
-docker build -f apps/api/Dockerfile -t repo-api .
+docker compose up -d db     # start Postgres
+docker compose down         # stop it (add -v to wipe data)
 ```
+
+The API still produces a self-contained production bundle via `pnpm --filter
+@repo/api build` (tsup, no `node_modules` at runtime) — run it with
+`pnpm --filter @repo/api start`.
 
 ## Commits & releases
 
