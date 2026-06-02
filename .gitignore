@@ -7,6 +7,10 @@ dist/
 .next/
 out/
 build/
+*.tsbuildinfo
+
+# Next.js generated types
+next-env.d.ts
 
 # Turbo
 .turbo/
