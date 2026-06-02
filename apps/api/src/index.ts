@@ -1,38 +1,30 @@
-import { serve } from '@hono/node-server'
 import { trpcServer } from '@hono/trpc-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
-import { env } from './env'
+import type { Bindings } from './bindings'
 import { appRouter } from './trpc/router'
 import { createContext } from './trpc/trpc'
 
-const app = new Hono()
-
-app.use('*', logger())
-app.use(
-  '/trpc/*',
-  cors({
-    origin: env.CORS_ORIGIN,
-    credentials: true,
-  }),
-)
+const app = new Hono<{ Bindings: Bindings }>()
 
 app.get('/', (c) => c.json({ service: 'api', status: 'ok' }))
-app.get('/health', (c) => c.json({ status: 'healthy', uptime: process.uptime() }))
+app.get('/health', (c) => c.json({ status: 'healthy' }))
 
-app.use(
-  '/trpc/*',
+// CORS is configured per-request because the allowed origin comes from env.
+app.use('/trpc/*', (c, next) =>
+  cors({
+    origin: c.env.CORS_ORIGIN || 'http://localhost:3000',
+    credentials: true,
+  })(c, next),
+)
+
+app.use('/trpc/*', (c, next) =>
   trpcServer({
     endpoint: '/trpc',
     router: appRouter,
-    createContext: (_opts, c) => createContext(c),
-  }),
+    createContext: (_opts, ctx) => createContext(ctx),
+  })(c, next),
 )
 
-serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  console.log(`🚀 API listening on http://localhost:${info.port}`)
-})
-
-export type { AppRouter } from './trpc/router'
 export default app
+export type { AppRouter } from './trpc/router'

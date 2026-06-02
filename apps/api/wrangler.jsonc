@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-fullstack-workflow-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  // nodejs_compat lets the postgres.js driver run on the Workers runtime.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Override in production with the deployed web origin (Vercel URL),
+    // e.g. via `wrangler deploy --var CORS_ORIGIN:https://<app>.vercel.app`
+    // or the Cloudflare dashboard.
+    "CORS_ORIGIN": "http://localhost:3000"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // Replace with the id printed by `wrangler hyperdrive create` (see DEPLOYMENT.md).
+      "id": "REPLACE_WITH_YOUR_HYPERDRIVE_ID",
+      // Used only by `wrangler dev` — points at the local Docker Postgres.
+      "localConnectionString": "postgres://postgres:postgres@localhost:5432/app"
+    }
+  ],
+  "dev": {
+    "port": 3001
+  }
+}
