@@ -8,6 +8,13 @@
       "when": 1780364473397,
       "tag": "0000_broad_shiva",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780371964716,
+      "tag": "0001_serious_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

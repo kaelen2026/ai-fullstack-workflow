@@ -1,0 +1,13 @@
+# Secrets for `wrangler dev` (loaded automatically; never committed).
+# Copy to `.dev.vars` and fill in. In production set these with
+# `wrangler secret put <NAME>` (see DEPLOYMENT.md) — do NOT put them in
+# wrangler.jsonc vars.
+
+# Session signing secret. Generate one with:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+BETTER_AUTH_SECRET=
+
+# Google OAuth credentials (optional in dev — email/password works without them).
+# Authorized redirect URI: <BETTER_AUTH_URL>/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=

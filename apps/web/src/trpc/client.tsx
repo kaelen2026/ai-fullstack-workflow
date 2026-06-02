@@ -30,7 +30,13 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient()
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
-      links: [httpBatchLink({ url: getApiUrl() })],
+      links: [
+        httpBatchLink({
+          url: getApiUrl(),
+          // Send the better-auth session cookie on cross-origin requests.
+          fetch: (url, options) => fetch(url, { ...options, credentials: 'include' }),
+        }),
+      ],
     }),
   )
 

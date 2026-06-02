@@ -120,6 +120,35 @@ Worker, which queries Supabase through Hyperdrive.
 
 ---
 
+## 5. Auth secrets (better-auth)
+
+The Worker serves better-auth at `/api/auth/*`. It needs one var and one or
+more secrets. The var goes in `wrangler.jsonc`; secrets are set with
+`wrangler secret put` (never committed):
+
+```bash
+cd apps/api
+# Public origin of THIS api (flips cookies to cross-site Secure when https://).
+pnpm exec wrangler deploy --var BETTER_AUTH_URL:https://ai-fullstack-workflow-api.<sub>.workers.dev
+
+# Session signing secret (generate one):
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))" | pnpm exec wrangler secret put BETTER_AUTH_SECRET
+
+# Google OAuth (optional — email/password works without it):
+pnpm exec wrangler secret put GOOGLE_CLIENT_ID
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+```
+
+For Google OAuth, create credentials at
+https://console.cloud.google.com/apis/credentials and set the authorized
+redirect URI to `<BETTER_AUTH_URL>/api/auth/callback/google`.
+
+Because web and api live on different sites in production, the session cookie is
+issued `SameSite=None; Secure` (see `apps/api/src/auth.ts`) and the clients send
+`credentials: 'include'`. `CORS_ORIGIN` must be the exact web origin (not `*`).
+
+---
+
 ## Local development (no cloud needed)
 
 `wrangler dev` runs the Worker in the real Workers runtime, and the Hyperdrive
@@ -127,9 +156,15 @@ binding's `localConnectionString` points at the Docker Postgres:
 
 ```bash
 docker compose up -d db
-cd apps/api && pnpm db:migrate    # with .env DATABASE_URL = local docker
-pnpm dev                          # from repo root: web :3000 + worker :3001
+cd apps/api
+cp .env.example .env               # DATABASE_URL for drizzle-kit migrations
+cp .dev.vars.example .dev.vars     # BETTER_AUTH_SECRET (+ optional Google creds)
+pnpm db:migrate
+cd ../.. && pnpm dev               # web :3000 + worker :3001
 ```
+
+Locally both apps run on `http://localhost` (same site), so the cookie stays
+`SameSite=Lax` and works without HTTPS.
 
 ## Notes & gotchas
 

@@ -1,25 +1,35 @@
 import { TRPCError } from '@trpc/server'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { todos } from '../../db/schema'
-import { publicProcedure, router } from '../trpc'
+import { protectedProcedure, router } from '../trpc'
 
 export const todosRouter = router({
-  list: publicProcedure.query(({ ctx }) => {
-    return ctx.db.select().from(todos).orderBy(desc(todos.createdAt))
+  list: protectedProcedure.query(({ ctx }) => {
+    return ctx.db
+      .select()
+      .from(todos)
+      .where(eq(todos.userId, ctx.user.id))
+      .orderBy(desc(todos.createdAt))
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({ title: z.string().trim().min(1).max(256) }))
     .mutation(async ({ ctx, input }) => {
-      const [todo] = await ctx.db.insert(todos).values({ title: input.title }).returning()
+      const [todo] = await ctx.db
+        .insert(todos)
+        .values({ title: input.title, userId: ctx.user.id })
+        .returning()
       return todo
     }),
 
-  toggle: publicProcedure
+  toggle: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      const [existing] = await ctx.db.select().from(todos).where(eq(todos.id, input.id))
+      const [existing] = await ctx.db
+        .select()
+        .from(todos)
+        .where(and(eq(todos.id, input.id), eq(todos.userId, ctx.user.id)))
 
       if (!existing) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Todo not found' })
@@ -28,15 +38,15 @@ export const todosRouter = router({
       const [updated] = await ctx.db
         .update(todos)
         .set({ completed: !existing.completed })
-        .where(eq(todos.id, input.id))
+        .where(and(eq(todos.id, input.id), eq(todos.userId, ctx.user.id)))
         .returning()
       return updated
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(todos).where(eq(todos.id, input.id))
+      await ctx.db.delete(todos).where(and(eq(todos.id, input.id), eq(todos.userId, ctx.user.id)))
       return { id: input.id }
     }),
 })
