@@ -1,0 +1,295 @@
+name: Niuma (@niuma)
+
+# 通过 @niuma 字符串或 niuma label 唤起的通用型成员 Agent（GitHub 原生层）。
+# 设计原则见 .github/prompts/niuma.md：像真实队员一样工作，按本仓 workflow.md 的分支模型
+# （PR 进 dev、不碰 main）落地改动。飞书 IM 桥（Phase 2）不在本 workflow 范围内。
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, edited, labeled]
+  pull_request:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "诉求载体的完整文本（自描述：来源、相关 ID、原文等）"
+        required: true
+        type: string
+      thread_key:
+        description: |
+          外部会话维度的稳定 key（如飞书 thread root_id）；非空时启用 session 复用——
+          concurrency group 串行同 thread + cache 持久化 ~/.claude。
+          GitHub 原生事件触发时为空，不复用 session。
+        required: false
+        default: ""
+        type: string
+      session_uuid:
+        description: |
+          Claude Code session 的稳定 UUID（上游 uuidv5(NAMESPACE, thread_key) 算出）。
+          非空时本 run 用它做 `--resume <uuid>`（cache 命中）或 `--session-id <uuid>`（首次）。
+        required: false
+        default: ""
+        type: string
+
+# concurrency：
+# - 有 thread_key（外部 IM 同 thread）→ group=niuma-thread-<thread_key>，串行执行同 thread
+#   的所有 run，保证「同一 thread 永远只有一个 session 在跑」。cancel-in-progress=false
+#   是关键——后到的消息必须排队等前一个跑完，否则 session.jsonl 会被并发写坏。
+# - 没 thread_key（GitHub 原生事件等）→ group=niuma-run-<run_id>，每个 run 独立并发。
+concurrency:
+  group: >-
+    ${{ (github.event_name == 'workflow_dispatch' && inputs.thread_key != '')
+        && format('niuma-thread-{0}', inputs.thread_key)
+        || format('niuma-run-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  niuma:
+    # @niuma 字符串、niuma label、workflow_dispatch 三种唤起方式。
+    # 字符串触发统一过滤掉 sender == NIUMA_BOT_LOGIN（仓库变量，niuma 自己的提交身份）——
+    # 避免 niuma 发的评论里再含 @niuma 回环触发自己。label 和 dispatch 是显式派活，不受此约束。
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'niuma') ||
+      (
+        github.event.sender.login != vars.NIUMA_BOT_LOGIN &&
+        (
+          (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@niuma')) ||
+          (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@niuma')) ||
+          (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@niuma')) ||
+          (github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited') && contains(github.event.issue.body, '@niuma')) ||
+          (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'edited') && contains(github.event.pull_request.body, '@niuma'))
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+
+    steps:
+      - name: 解析事件上下文
+        id: ctx
+        env:
+          GH_TOKEN: ${{ secrets.NIUMA_GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          # 透传所有可能的 body / number，避免 if 链里反复访问 event.*
+          IC_BODY: ${{ github.event.comment.body }}
+          IC_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          # 非空表示 issue_comment 来自 PR 而非纯 Issue
+          IC_PR_URL: ${{ github.event.issue.pull_request.url }}
+          PRC_BODY: ${{ github.event.comment.body }}
+          PRC_NUMBER: ${{ github.event.pull_request.number }}
+          PRR_BODY: ${{ github.event.review.body }}
+          PRR_NUMBER: ${{ github.event.pull_request.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DISPATCH_TASK: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+
+          NUMBER=""
+          IS_PR="false"
+          TRIGGER_BODY=""
+
+          case "$EVENT_NAME" in
+            issue_comment)
+              NUMBER="$IC_ISSUE_NUMBER"
+              if [ -n "${IC_PR_URL:-}" ]; then IS_PR="true"; else IS_PR="false"; fi
+              TRIGGER_BODY="$IC_BODY"
+              ;;
+            pull_request_review_comment)
+              NUMBER="$PRC_NUMBER"; IS_PR="true"; TRIGGER_BODY="$PRC_BODY"
+              ;;
+            pull_request_review)
+              NUMBER="$PRR_NUMBER"; IS_PR="true"; TRIGGER_BODY="$PRR_BODY"
+              ;;
+            issues)
+              NUMBER="$ISSUE_NUMBER"; IS_PR="false"; TRIGGER_BODY="$ISSUE_BODY"
+              ;;
+            pull_request)
+              NUMBER="$PR_NUMBER"; IS_PR="true"; TRIGGER_BODY="$PR_BODY"
+              ;;
+            workflow_dispatch)
+              NUMBER=""; IS_PR="false"; TRIGGER_BODY="$DISPATCH_TASK"
+              ;;
+          esac
+
+          # 决定 checkout 的 ref：
+          # - 内部 PR → checkout PR head 分支（可 push）
+          # - fork PR / Issue / 主仓事件 → checkout dev（要改代码就从 dev 切自建分支提 PR）
+          REF="dev"
+          IS_FORK="false"
+          if [ "$IS_PR" = "true" ]; then
+            PR_INFO=$(gh pr view "$NUMBER" --repo "$REPO" --json headRefName,headRepositoryOwner 2>/dev/null || echo "{}")
+            HEAD_REF=$(echo "$PR_INFO" | jq -r '.headRefName // empty')
+            HEAD_OWNER=$(echo "$PR_INFO" | jq -r '.headRepositoryOwner.login // empty')
+            REPO_OWNER="${REPO%%/*}"
+            if [ -n "$HEAD_REF" ] && [ "$HEAD_OWNER" = "$REPO_OWNER" ]; then
+              REF="$HEAD_REF"
+            else
+              IS_FORK="true"
+            fi
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            EVENT_HEADER=""
+          else
+            if [ "$IS_PR" = "true" ]; then CLASS="PR"; else CLASS="Issue"; fi
+            EVENT_HEADER=$(printf -- '- **目标编号**: #%s\n- **类型**: %s\n- **来自 fork**: %s\n- **当前分支（已 checkout 到工作目录）**: %s' \
+              "$NUMBER" "$CLASS" "$IS_FORK" "$REF")
+          fi
+
+          {
+            echo "number=$NUMBER"
+            echo "is_pr=$IS_PR"
+            echo "is_fork=$IS_FORK"
+            echo "ref=$REF"
+            echo "trigger_body<<NIUMA_TRIGGER_BODY_EOF"
+            echo "$TRIGGER_BODY"
+            echo "NIUMA_TRIGGER_BODY_EOF"
+            echo "event_header<<NIUMA_EVENT_HEADER_EOF"
+            echo "$EVENT_HEADER"
+            echo "NIUMA_EVENT_HEADER_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # 立刻给触发载体打 eyes reaction，告诉召唤者"看到了"。AI 不再负责这一步。
+      - name: 回执 eyes reaction
+        env:
+          GH_TOKEN: ${{ secrets.NIUMA_GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          NUMBER: ${{ steps.ctx.outputs.number }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            issue_comment)
+              gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=eyes >/dev/null ;;
+            pull_request_review_comment)
+              gh api -X POST "repos/$REPO/pulls/comments/$COMMENT_ID/reactions" -f content=eyes >/dev/null ;;
+            pull_request_review|issues|pull_request)
+              gh api -X POST "repos/$REPO/issues/$NUMBER/reactions" -f content=eyes >/dev/null ;;
+            workflow_dispatch)
+              : ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.ctx.outputs.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.NIUMA_GITHUB_TOKEN }}
+
+      # pnpm + Node 与 ci.yml 一致，供 niuma 自行跑 lint/types/build。
+      # 不在此预跑 `pnpm install`——多数任务（答疑/派活/回评论）不碰代码，
+      # 真要跑依赖项目代码的脚本时让 niuma 自己装（niuma.md 已说明）。
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Configure Claude settings
+        run: |
+          echo '{"hasCompletedOnboarding": true}' > ~/.claude.json
+
+      # thread 内 session 复用——只在带 thread_key 的 dispatch 路径生效（Phase 2 飞书桥）。
+      - name: 恢复 thread session 缓存
+        if: github.event_name == 'workflow_dispatch' && inputs.thread_key != ''
+        id: cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.claude
+          key: niuma-session-${{ inputs.thread_key }}-${{ github.run_id }}
+          restore-keys: |
+            niuma-session-${{ inputs.thread_key }}-
+
+      # cache 命中 → --resume；未命中 → --session-id 用指定 UUID 新建；无 session_uuid → 空。
+      - name: 判定 session 复用模式
+        id: session_mode
+        env:
+          SESSION_UUID: ${{ inputs.session_uuid }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SESSION_UUID:-}" ]; then
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "claude_session_arg=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if compgen -G "$HOME/.claude/projects/*/${SESSION_UUID}.jsonl" > /dev/null; then
+            echo "mode=resume" >> "$GITHUB_OUTPUT"
+            echo "claude_session_arg=--resume ${SESSION_UUID}" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=fresh" >> "$GITHUB_OUTPUT"
+            echo "claude_session_arg=--session-id ${SESSION_UUID}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 运行牛马
+        id: claude-code
+        uses: ./.github/actions/claude-code
+        env:
+          GH_TOKEN: ${{ secrets.NIUMA_GITHUB_TOKEN }}
+        with:
+          token_pool: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_POOL }}
+          oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            你被召唤了。事件与上下文如下，按 system prompt 的使命书处理。
+
+            - **仓库**: ${{ github.repository }}
+            - **事件**: ${{ github.event_name }}（action: ${{ github.event.action || 'n/a' }}）
+            ${{ steps.ctx.outputs.event_header }}
+            - **触发者**: ${{ github.event.sender.login || github.actor }}
+            - **本次 workflow run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            ${{ steps.session_mode.outputs.mode == 'resume' && '- **同一 thread 的延续**：session 已 resume，不要重新自我介绍 / 复述上次结论，接着这条新消息往下处理。' || '' }}
+            ${{ steps.session_mode.outputs.mode == 'fresh' && '- **本 thread 的首次会话**：session 是新建的，按使命书处理本条消息即可。' || '' }}
+
+            **触发载体内容**（GitHub 事件时是 `@niuma` 后跟的诉求；workflow_dispatch 时是上游拼好的 task）：
+
+            ```
+            ${{ steps.ctx.outputs.trigger_body }}
+            ```
+
+            讨论线、PR diff、Issue 详情等按需自己用 `gh` / `git` 取。
+          show_full_output: true
+          append_system_prompt_files: |
+            .github/prompts/base-rules.md
+            .github/prompts/niuma.md
+          claude_args: >-
+            --dangerously-skip-permissions
+            --max-turns 200
+            --model opus
+            ${{ steps.session_mode.outputs.claude_session_arg }}
+
+      - name: 保存 thread session 缓存
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.thread_key != ''
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.claude
+          key: niuma-session-${{ inputs.thread_key }}-${{ github.run_id }}
+
+      - name: 输出原始轨迹到 Step Summary
+        if: always() && steps.claude-code.outputs.execution_file != ''
+        shell: bash
+        run: |
+          {
+            echo "## 牛马运行轨迹 (Raw Output)"
+            echo ""
+            echo '```json'
+            cat "${{ steps.claude-code.outputs.execution_file }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
