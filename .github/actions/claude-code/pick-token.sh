@@ -99,5 +99,8 @@ done
 
 echo "picked candidate idx=$picked_idx weight=${CAND_WEIGHTS[$picked_idx]} candidates=${#CAND_TOKENS[@]} pool_size=${#TOKENS[@]} excluded=${#EXCLUDED_SET[@]}" >&2
 
-# 不带尾换行
-printf '%s' "${CAND_TOKENS[$picked_idx]}"
+# 末尾兜底：剥掉 token 里的所有空白字符（含误粘进 secret 的尾随 \r / 换行 / 空格）。
+# OAuth token 本身不含空白，所以 tr -d 安全。坏 secret 曾让 OAuth header 变成非法值
+# （Claude SDK 报 `API Error: Header 'N' has invalid value`），单 token fallback 路径
+# 此前没 trim，这里统一对最终选中的 token 收口，pool / fallback 两条路径都覆盖。不带尾换行。
+printf '%s' "${CAND_TOKENS[$picked_idx]}" | tr -d '[:space:]'
