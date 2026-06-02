@@ -21,13 +21,15 @@ pnpm dev
 
 ## Branch + PR workflow
 
-`main` is protected: **no direct pushes**, a PR is required, and CI must pass.
+All work flows through **`dev`** (the default, protected branch): no direct
+pushes, a PR is required, and CI must pass. `main` is production-only — see
+[Releasing](#releasing).
 
-1. **Branch off `main`.** Use a `type/short-description` name matching the
+1. **Branch off `dev`.** Use a `type/short-description` name matching the
    commit type (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, …):
 
    ```bash
-   git switch main && git pull
+   git switch dev && git pull
    git switch -c feat/todo-filtering
    ```
 
@@ -62,12 +64,16 @@ pnpm dev
    pnpm changeset
    ```
 
-5. **Push and open a PR** against `main`:
+5. **Push and open a PR** against `dev`:
 
    ```bash
    git push -u origin feat/todo-filtering
-   gh pr create --fill
+   gh pr create --base dev --fill
    ```
+
+   Opening the PR auto-deploys a **preview environment** at
+   `preview-<PR>.w3ctech.dev` (web) and `preview-<PR>-api.w3ctech.dev` (api);
+   the URLs are posted as a PR comment. It's torn down when the PR closes.
 
 ## What CI checks
 
@@ -76,26 +82,31 @@ Every PR must pass before it can merge:
 - **Lint · Types · Build** — `pnpm lint`, `pnpm check-types`, `pnpm build`
 - **Commit messages** — commitlint validates every commit in the PR
 
-The branch must also be **up to date with `main`** (strict checks). If `main`
+The branch must also be **up to date with `dev`** (strict checks). If `dev`
 moved, rebase or update your branch and push again.
 
-## Merging
+## Merging into dev
 
-- Merge via **squash** — `main` requires **linear history**, so merge commits
+- Merge via **squash** — `dev` requires **linear history**, so merge commits
   are rejected.
 - Unresolved review threads block merging; resolve them first.
-- Delete the branch after merge.
+- Delete the branch after merge. Merging to `dev` auto-deploys `dev.w3ctech.dev`.
 
 ```bash
 gh pr merge <number> --squash --delete-branch
 ```
 
-## Releasing
+## Releasing (dev → production)
 
-Versioning and changelogs are managed by [Changesets](https://github.com/changesets/changesets):
+`main` is **not** gated by PRs — production is promoted by hand:
 
 ```bash
-pnpm changeset          # record intent during your PR
-pnpm changeset:version  # bump versions + update CHANGELOGs
-pnpm changeset:publish  # build + publish
+git checkout main && git pull
+git merge --ff-only dev
+git push origin main
+# GitHub → Actions → "Deploy production" → Run workflow → confirm: deploy
 ```
+
+Versioning/changelogs use [Changesets](https://github.com/changesets/changesets)
+(`pnpm changeset` during your PR, then `pnpm changeset:version`). Full
+deployment details: [DEPLOYMENT.md](./DEPLOYMENT.md).
