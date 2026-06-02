@@ -1,7 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
-import { AuthForm } from '@/components/auth-form'
+import { Landing } from '@/components/landing'
 import { Todos } from '@/components/todos'
 import { Button } from '@/components/ui/button'
 import { signOut, useSession } from '@/lib/auth-client'
@@ -18,11 +18,7 @@ export default function Home() {
   }
 
   if (!session) {
-    return (
-      <main className="flex min-h-svh items-center justify-center px-6 py-16">
-        <AuthForm />
-      </main>
-    )
+    return <Landing />
   }
 
   return (
