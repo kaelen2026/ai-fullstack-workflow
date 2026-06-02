@@ -44,7 +44,7 @@
         "CORS_ORIGIN": "https://w3ctech.dev",
         "BETTER_AUTH_URL": "https://api.w3ctech.dev"
       },
-      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_PROD_HYPERDRIVE_ID" }],
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "082f60216f024bb392dc84cacfde1514" }],
       "routes": [{ "pattern": "api.w3ctech.dev", "custom_domain": true }]
     }
   }
