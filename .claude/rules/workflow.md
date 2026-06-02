@@ -6,11 +6,16 @@ How changes land in this repo. `dev` is the default + protected branch — no di
 
 - Always branch off an up-to-date `dev`. Never commit directly to `dev` — open a PR.
 - Name branches `type/short-description` matching the commit type: `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, …
+- **Work in a git worktree, not in place.** Create the worktree in the **parent directory**, named `ai-fullstack-workflow-<branch-slug>` where `<branch-slug>` is the branch name with `/` → `-` (e.g. `feat/todo-filtering` → `ai-fullstack-workflow-feat-todo-filtering`). Base it off `origin/dev` so the tree starts clean.
 
 ```bash
-git switch dev && git pull
-git switch -c feat/todo-filtering
+git fetch origin
+git worktree add -b feat/todo-filtering ../ai-fullstack-workflow-feat-todo-filtering origin/dev
+cd ../ai-fullstack-workflow-feat-todo-filtering
 ```
+
+- **Write a task doc** for the work at `docs/tasks/<branch-slug>-<yyyy-mmm-dd>.md` (lowercase 3-letter month, e.g. `feat-todo-filtering-2026-jun-02.md`) — capture the goal, scope, and plan there before implementing.
+- After the PR merges, remove the worktree: `git worktree remove ../ai-fullstack-workflow-<branch-slug>`.
 
 ## Before committing
 

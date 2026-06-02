@@ -15,7 +15,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",
@@ -32,6 +34,7 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.6",
     "typescript": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "^4.40.0"
   }
 }

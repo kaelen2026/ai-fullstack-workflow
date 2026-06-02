@@ -43,6 +43,9 @@ pnpm-debug.log*
 
 # Testing / coverage
 coverage/
+test-results/
+playwright-report/
+playwright/.cache/
 
 # Drizzle local
 apps/api/drizzle/meta/_journal.bak
