@@ -62,6 +62,14 @@ Turborepo + pnpm-workspace monorepo. Dependency versions for shared tooling/libs
 
 The web app gets full end-to-end types with **no codegen**: `apps/api` exposes its router type via the `"./trpc"` export (`package.json` → `./src/trpc/router.ts`), and web imports `import type { AppRouter } from '@repo/api/trpc'`. This is type-only — no API runtime code is bundled into web. When you add/rename a procedure in the API, the web call sites type-check against it immediately.
 
+### Authentication (better-auth)
+
+- The API builds a **per-request** better-auth instance in `apps/api/src/auth.ts` (`createAuth(db, env)`) — same reason as the db: no module-scope env on Workers. It uses the drizzle adapter (`provider: 'pg'`) over the request's Drizzle client. The handler is mounted in `src/index.ts` at `/api/auth/*`; the four auth tables (`user`, `session`, `account`, `verification`) live in `src/db/schema.ts`.
+- `src/trpc/trpc.ts` resolves the session via `auth.api.getSession` into `ctx.user` and exposes **`protectedProcedure`** (throws `UNAUTHORIZED` when unauthenticated). `todos` are scoped per-user (`todos.userId` FK) and use `protectedProcedure`.
+- **Cross-site cookies:** web and api are different sites in prod, so the session cookie is `SameSite=None; Secure` (gated on `BETTER_AUTH_URL` being `https://`) and both clients send `credentials: 'include'`. Locally everything is `http://localhost` (same site) → `SameSite=Lax`. `CORS_ORIGIN` must be the exact web origin.
+- Web client: `src/lib/auth-client.ts` (`better-auth/react`) exports `signIn` / `signUp` / `signOut` / `useSession`. Secrets (`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`) are Worker secrets / `.dev.vars`; `BETTER_AUTH_URL` is a `wrangler.jsonc` var. See `DEPLOYMENT.md`.
+- **kysely pin:** `pnpm.overrides` pins `kysely@^0.28.17`. better-auth's (unused) kysely sqlite dialects import migration constants that 0.29.x moved off the main entry, which breaks the Worker bundle. Don't drop the override.
+
 ### Worker runtime (non-obvious)
 
 - `wrangler.jsonc` carries `compatibility_flags: ["nodejs_compat"]` — required for the `postgres` driver to run on Workers. Don't remove it.

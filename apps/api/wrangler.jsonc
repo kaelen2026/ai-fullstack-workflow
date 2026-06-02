@@ -12,7 +12,11 @@
     // Override in production with the deployed web origin (Vercel URL),
     // e.g. via `wrangler deploy --var CORS_ORIGIN:https://<app>.vercel.app`
     // or the Cloudflare dashboard.
-    "CORS_ORIGIN": "http://localhost:3000"
+    "CORS_ORIGIN": "http://localhost:3000",
+    // Public origin of THIS api (where /api/auth/* is served). Override in
+    // production with the deployed Worker URL. https:// here flips better-auth
+    // to cross-site Secure cookies (see src/auth.ts).
+    "BETTER_AUTH_URL": "http://localhost:3001"
   },
   "hyperdrive": [
     {

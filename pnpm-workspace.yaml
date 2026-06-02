@@ -35,3 +35,6 @@ catalog:
   "@trpc/client": ^11.7.1
   "@trpc/tanstack-react-query": ^11.7.1
   "@tanstack/react-query": ^5.90.5
+
+  # Auth
+  better-auth: ^1.6.13
