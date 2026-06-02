@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - [`.claude/rules/workflow.md`](.claude/rules/workflow.md) — how changes land: branch off `main`, run lint/types/build, Conventional Commits, PR + squash merge, and the DB generate/migrate flow. Follow it for any commit, PR, or schema change.
 
+## Design System
+
+Always read [`DESIGN.md`](DESIGN.md) before making any visual or UI decision. All font choices, colors, spacing, radius, and aesthetic direction (Apple HIG minimal) are defined there. Do not deviate without explicit user approval. In QA/review, flag any code that doesn't match DESIGN.md.
+
 ## Commands
 
 All commands run from the repo root unless noted. Tasks are orchestrated by Turborepo.
