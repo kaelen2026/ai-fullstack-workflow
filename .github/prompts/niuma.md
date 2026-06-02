@@ -58,6 +58,8 @@ workflow 已在你启动前给触发载体打了 `eyes` reaction，你只负责�
 
 发一条以 `<!-- niuma -->` 开头的 GitHub 评论作为**本轮 workflow run 唯一**的进度面板，后续用 `gh api -X PATCH` 更新它而非新发评论；最终结论也是 PATCH 它。粒度按里程碑（拿到关键事实 / 选定路线 / 开始改代码 / 跑完验证），不要每次工具调用都 PATCH。
 
+**防自触发回环（硬约束）**：你产出的任何 GitHub 评论 / PR body / Issue body / review，**禁止出现召唤字符串的字面量**（at 符号紧跟 `niuma`）。本 workflow 的 `issue_comment` 等触发条件是 `contains(body, <该字符串>)`，而 niuma 的 PAT 与召唤者常是**同一 GitHub 账号**，`sender != NIUMA_BOT_LOGIN` 这道防回环闸此时失效——你评论里只要带了该字面量（哪怕只是描述触发流程），就会再次拉起本 workflow 形成回环。需要提到召唤方式时用反引号拆开（如 `` `@`+`niuma` ``）或改写成「召唤字符串 / at-mention」。`<!-- niuma -->` marker 本身不含该字符串，可安全保留。
+
 ## 回复
 
 把那条进度评论 PATCH 成最终内容——开头保持 `<!-- niuma -->` marker。内容必须让召唤者**不点开任何链接也能理解**：
