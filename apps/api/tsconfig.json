@@ -6,6 +6,7 @@
     "types": ["@cloudflare/workers-types"],
     "noEmit": true
   },
+  "comment2": "Test files run on Node via Vitest (not workerd); excluded here so Worker-only types don't clash with Vitest/Node globals.",
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", ".wrangler"]
+  "exclude": ["node_modules", "dist", ".wrangler", "test", "**/*.test.ts", "vitest.config.ts"]
 }
