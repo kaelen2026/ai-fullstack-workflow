@@ -1,20 +1,21 @@
 import { initTRPC } from '@trpc/server'
 import type { Context as HonoContext } from 'hono'
-import { db } from '../db'
+import type { Bindings } from '../bindings'
+import { createDb } from '../db'
 
 /**
- * Per-request context. Anything returned here is available on `ctx` in every
- * procedure (db handle, request, auth, etc.).
+ * Per-request context. The Drizzle client is created here from the Hyperdrive
+ * connection string on the Worker env (env is only available per request).
  */
-export async function createContext(c: HonoContext) {
+export function createContext(c: HonoContext) {
+  const env = c.env as Bindings
   return {
-    db,
+    db: createDb(env.HYPERDRIVE.connectionString),
     req: c.req,
-    header: (name: string) => c.req.header(name),
   }
 }
 
-export type Context = Awaited<ReturnType<typeof createContext>>
+export type Context = ReturnType<typeof createContext>
 
 const t = initTRPC.context<Context>().create()
 

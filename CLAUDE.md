@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Rules
+
+- [`.claude/rules/workflow.md`](.claude/rules/workflow.md) — how changes land: branch off `main`, run lint/types/build, Conventional Commits, PR + squash merge, and the DB generate/migrate flow. Follow it for any commit, PR, or schema change.
+
 ## Commands
 
 All commands run from the repo root unless noted. Tasks are orchestrated by Turborepo.
@@ -17,14 +21,18 @@ pnpm check-types    # tsc --noEmit across packages
 Target a single package with `--filter`:
 
 ```bash
-pnpm --filter @repo/api dev        # tsx watch (hot reload)
-pnpm --filter @repo/api start      # run the built dist/index.js (production bundle)
+pnpm --filter @repo/api dev        # wrangler dev (Worker in workerd, :3001)
+pnpm --filter @repo/api deploy     # wrangler deploy (needs wrangler login + Hyperdrive id)
+pnpm --filter @repo/api build      # wrangler deploy --dry-run (validates the bundle, no auth)
 pnpm --filter @repo/web build
 ```
 
+`apps/api` runs on **Cloudflare Workers**, not Node — there is no `start`/`serve`.
+Deployment (Vercel + Cloudflare + Supabase, all free tier) is in `DEPLOYMENT.md`.
+
 ### Database (Drizzle + Postgres)
 
-Postgres runs in Docker; everything else runs on the host.
+Local Postgres runs in Docker; production is Supabase (reached via Hyperdrive). Migrations (`db:*`) run on Node via drizzle-kit against `DATABASE_URL` in `apps/api/.env` — the running Worker never reads that file.
 
 ```bash
 docker compose up -d db    # start Postgres (:5432, db "app", postgres/postgres)
@@ -46,7 +54,7 @@ There is no test runner configured yet.
 
 Turborepo + pnpm-workspace monorepo. Dependency versions for shared tooling/libs are pinned centrally in the `catalog:` block of `pnpm-workspace.yaml` (referenced as `"catalog:"` in each package.json) — bump versions there, not per-package.
 
-- **`apps/api`** — Hono server (`src/index.ts`) mounting tRPC v11 at `/trpc` via `@hono/trpc-server`, plus `/health`. Env is validated by Zod in `src/env.ts` (process exits on invalid env). Data layer is Drizzle ORM over postgres-js (`src/db/`). tRPC procedures live in `src/trpc/routers/*` and compose into `appRouter` in `src/trpc/router.ts`; the request `Context` (db handle, request) is built in `src/trpc/trpc.ts`.
+- **`apps/api`** — Hono app (`src/index.ts`, `export default app`) running on **Cloudflare Workers**, mounting tRPC v11 at `/trpc` via `@hono/trpc-server`, plus `/health`. Worker bindings are typed in `src/bindings.ts` (`HYPERDRIVE`, `CORS_ORIGIN`). There is no module-scope env or db on Workers: the request `Context` in `src/trpc/trpc.ts` builds a Drizzle client per request via `createDb(c.env.HYPERDRIVE.connectionString)` (`src/db/index.ts`, postgres-js). tRPC procedures live in `src/trpc/routers/*` and compose into `appRouter` in `src/trpc/router.ts`.
 - **`apps/web`** — Next.js 16 App Router. The tRPC client uses the modern `@trpc/tanstack-react-query` integration: `src/trpc/client.tsx` exports `useTRPC` + `TRPCReactProvider` (wrapped around the app in `layout.tsx`). Components call `useQuery(trpc.x.queryOptions())` / `useMutation(trpc.x.mutationOptions())`. shadcn/ui (new-york style, Tailwind v4) lives under `src/components/ui`, `cn` in `src/lib/utils.ts`.
 - **`packages/typescript-config`** — shared `base.json` / `nextjs.json` / `node.json` tsconfigs (strict, `verbatimModuleSyntax`, bundler resolution).
 
@@ -54,12 +62,15 @@ Turborepo + pnpm-workspace monorepo. Dependency versions for shared tooling/libs
 
 The web app gets full end-to-end types with **no codegen**: `apps/api` exposes its router type via the `"./trpc"` export (`package.json` → `./src/trpc/router.ts`), and web imports `import type { AppRouter } from '@repo/api/trpc'`. This is type-only — no API runtime code is bundled into web. When you add/rename a procedure in the API, the web call sites type-check against it immediately.
 
-### API build (non-obvious)
+### Worker runtime (non-obvious)
 
-`tsup` bundles the API and **all dependencies** into a single ESM `dist/index.js` (`noExternal: [/.*/]`), so the production output needs no `node_modules`. Bundling CJS deps into ESM requires the `createRequire` banner in `tsup.config.ts` — removing it reintroduces a `Dynamic require of "fs"` crash at startup. `tsc` is type-check only here (no emit).
+- `wrangler.jsonc` carries `compatibility_flags: ["nodejs_compat"]` — required for the `postgres` driver to run on Workers. Don't remove it.
+- The Worker reaches Postgres only through the **Hyperdrive** binding. In `wrangler dev` the binding uses `localConnectionString` (Docker Postgres); in production it uses the Hyperdrive `id` (set after `wrangler hyperdrive create`). The DB connection string is never in env vars or the repo.
+- `apps/api/tsconfig.json` uses `@cloudflare/workers-types` only (no `@types/node`) to avoid global clashes; `drizzle.config.ts` is excluded from `tsc` (drizzle-kit runs it on Node directly).
+- The `build` script is `wrangler deploy --dry-run` — it bundles + validates the Worker without auth, so CI catches a broken Worker before deploy.
 
 ## Tooling notes
 
 - **Biome** (not ESLint/Prettier) is the single linter+formatter. `biome.json` enables `css.parser.tailwindDirectives` so Tailwind v4 `@apply`/`@theme`/`@custom-variant` in `globals.css` parse correctly. Keep the `$schema` version in `biome.json` matching the installed CLI version.
 - **husky + lint-staged**: pre-commit runs Biome on staged files; commit-msg runs commitlint.
-- Native install scripts are gated by pnpm — `esbuild` (powers tsup) and `sharp` (Next image opt) are allowlisted under `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
+- Native install scripts are gated by pnpm — `esbuild`, `sharp` (Next image opt), and `workerd` (wrangler's runtime) are allowlisted under `onlyBuiltDependencies` in `pnpm-workspace.yaml`.

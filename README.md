@@ -6,8 +6,8 @@ A type-safe full-stack monorepo powered by [Turborepo](https://turbo.build) and 
 
 | App / Package              | Tech                                                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
-| `apps/web`                 | Next.js 16 (App Router) · Tailwind CSS v4 · shadcn/ui · React Query      |
-| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM · Postgres (Docker)                  |
+| `apps/web`                 | Next.js 16 (App Router) · Tailwind CSS v4 · shadcn/ui · React Query — deploys to **Vercel** |
+| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM — runs on **Cloudflare Workers** (Hyperdrive → **Supabase** Postgres) |
 | `packages/typescript-config` | Shared `tsconfig` presets                                             |
 
 Tooling: **Biome** (lint + format), **husky** + **lint-staged** (git hooks),
@@ -19,9 +19,9 @@ End-to-end type safety: the web app imports the API's router type via
 
 ## Prerequisites
 
-- Node.js >= 22
+- Node.js >= 22 (pinned in `.nvmrc`)
 - pnpm 10 (`corepack enable`)
-- Docker (for Postgres and the API image)
+- Docker (for the local Postgres)
 
 ## Getting started
 
@@ -32,18 +32,22 @@ pnpm install
 docker compose up -d db
 
 # 2. Configure env
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env   # DATABASE_URL for migrations
+cp apps/web/.env.example apps/web/.env   # NEXT_PUBLIC_API_URL
 
 # 3. Create the schema
-pnpm db:push          # or: pnpm db:generate && pnpm db:migrate
+pnpm db:migrate          # or, for a quick dev push: pnpm db:push
 
 # 4. Run everything
 pnpm dev
 ```
 
-- Web: http://localhost:3000
-- API: http://localhost:3001 (tRPC at `/trpc`, health at `/health`)
+- Web (Next.js): http://localhost:3000
+- API (Worker via `wrangler dev`): http://localhost:3001 (tRPC at `/trpc`, health at `/health`)
+
+The Worker reaches Postgres through its Hyperdrive binding; in `wrangler dev`
+that binding uses `localConnectionString` (the Docker Postgres) — no Cloudflare
+account needed for local work.
 
 ## Scripts
 
@@ -69,6 +73,15 @@ pnpm db:generate   # writes SQL to apps/api/drizzle/
 pnpm db:migrate    # applies it
 ```
 
+## Deployment
+
+Web → **Vercel**, API → **Cloudflare Workers** (Hyperdrive), DB → **Supabase**,
+all on free tiers. See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the full guide.
+
+```bash
+pnpm deploy:api    # wrangler deploy (after wrangler login + Hyperdrive setup)
+```
+
 ## Docker
 
 Docker provides the **Postgres database** for local development; the apps run
@@ -78,10 +91,6 @@ on the host via `pnpm dev`.
 docker compose up -d db     # start Postgres
 docker compose down         # stop it (add -v to wipe data)
 ```
-
-The API still produces a self-contained production bundle via `pnpm --filter
-@repo/api build` (tsup, no `node_modules` at runtime) — run it with
-`pnpm --filter @repo/api start`.
 
 ## Commits & releases
 

@@ -15,6 +15,14 @@ next-env.d.ts
 # Turbo
 .turbo/
 
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# Vercel
+.vercel/
+
 # Env
 .env
 .env.*
