@@ -1,0 +1,318 @@
+# Instincts generated from https://github.com/kaelen2026/ai-fullstack-workflow
+# Generated: 2026-06-02T03:14:23.703Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: ai-fullstack-workflow-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat, docs
+
+## Evidence
+
+- 3 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat(api): run on Cloudflare Workers with Hyperdrive + Drizzle, docs(repo): add cloud deployment guide; update docs
+
+---
+id: ai-fullstack-workflow-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Commit Length
+
+## Action
+
+Write moderate-length commit messages (~51 characters)
+
+## Evidence
+
+- Average commit message length: 51 chars
+- Based on 3 commits
+
+---
+id: ai-fullstack-workflow-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: ai-fullstack-workflow-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: ai-fullstack-workflow-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: ai-fullstack-workflow-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: ai-fullstack-workflow-instinct-camelCase-files
+trigger: "When creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct CamelCase Files
+
+## Action
+
+Name the file using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.files
+
+---
+id: ai-fullstack-workflow-instinct-camelCase-functions
+trigger: "When defining a function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct CamelCase Functions
+
+## Action
+
+Use camelCase for the function name
+
+## Evidence
+
+- Pattern in namingConventions.functions
+
+---
+id: ai-fullstack-workflow-instinct-pascalCase-classes
+trigger: "When declaring a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct PascalCase Classes
+
+## Action
+
+Use PascalCase for the class name
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: ai-fullstack-workflow-instinct-screaming-snake-constants
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Screaming Snake Constants
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for the constant name
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: ai-fullstack-workflow-instinct-relative-imports
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Relative Imports
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle
+
+---
+id: ai-fullstack-workflow-instinct-named-exports
+trigger: "When exporting from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Named Exports
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle
+
+---
+id: ai-fullstack-workflow-instinct-separate-tests-folder
+trigger: "When adding or organizing tests"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Separate Tests Folder
+
+## Action
+
+Place test files in a separate folder from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+
+---
+id: ai-fullstack-workflow-instinct-conventional-commit-prefix
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Conventional Commit Prefix
+
+## Action
+
+Start the message with a conventional prefix such as 'feat' or 'docs'
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Seen in commit examples
+
+---
+id: ai-fullstack-workflow-instinct-commit-length
+trigger: "When composing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Commit Length
+
+## Action
+
+Keep the commit message concise, around 50 characters
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: ai-fullstack-workflow-instinct-monorepo-apps-folder
+trigger: "When adding a new application or service"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: kaelen2026/ai-fullstack-workflow
+---
+
+# Ai Fullstack Workflow Instinct Monorepo Apps Folder
+
+## Action
+
+Place the application in the 'apps' folder
+
+## Evidence
+
+- Pattern in architecture.folderStructure.commonFolders
+
