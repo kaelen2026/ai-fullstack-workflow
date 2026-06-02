@@ -1,144 +1,121 @@
 # Deployment
 
-Production topology (all free-tier):
+Everything runs on **Cloudflare Workers** (web via OpenNext, api as a Worker)
+with **Supabase** Postgres behind **Hyperdrive**. Deploys are orchestrated by
+GitHub Actions. Domains live on Cloudflare (`w3ctech.dev`).
+
+## Environments
+
+| Env | Trigger | Web | API | Database |
+| --- | --- | --- | --- | --- |
+| **preview** | open/update a PR → `dev` | `preview-<N>.w3ctech.dev` | `preview-<N>-api.w3ctech.dev` | shared **dev** DB |
+| **dev** | push to `dev` (PR merge) | `dev.w3ctech.dev` | `dev-api.w3ctech.dev` | **dev** DB |
+| **production** | manual `workflow_dispatch` after `dev`→`main` | `w3ctech.dev` | `api.w3ctech.dev` | **prod** DB |
+
+Closing a PR tears its preview Workers + domains down automatically.
 
 ```
-Browser ── HTTPS ──> Vercel (Next.js web)
-                         │  tRPC over HTTPS (NEXT_PUBLIC_API_URL)
-                         ▼
-                 Cloudflare Worker (Hono + tRPC)
-                         │  Hyperdrive binding (pooled)
-                         ▼
-                  Supabase Postgres
+PR → dev ──(merge)──> dev branch ──(auto)──> dev.w3ctech.dev
+                          │
+                   (merge dev→main, no PR)
+                          ▼
+                   main ──(manual: Actions → Deploy production)──> w3ctech.dev
 ```
-
-| Piece | Platform | Free tier |
-| ----- | -------- | --------- |
-| `apps/web` | Vercel (Hobby) | yes |
-| `apps/api` | Cloudflare Workers + Hyperdrive | yes |
-| Database | Supabase Postgres | yes (500 MB; pauses after ~1 week idle) |
-
-You need accounts on all three. Wrangler is already a dev dependency; the
-Vercel and Supabase steps use their dashboards (no extra CLI required).
 
 ---
 
-## 1. Supabase (database)
+## One-time setup
 
-1. Create a project at https://supabase.com/dashboard. Save the database
-   password you set.
-2. **Project Settings → Database → Connection string.** You need the
-   **Session pooler** string (IPv4, port `5432`, Supavisor session mode) —
-   used for both Hyperdrive and migrations:
+### 1. Supabase — two projects
 
-   ```
-   postgres://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
-   ```
+Create **prod** and **dev** projects at https://supabase.com/dashboard. For
+each, grab the **Session pooler** connection string (Settings → Database, IPv4,
+port `5432`):
 
-3. Run the Drizzle migrations against it from your machine:
+```
+postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+```
 
-   ```bash
-   cd apps/api
-   echo 'DATABASE_URL=postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres' > .env
-   pnpm db:migrate          # applies drizzle/*.sql (creates the todos table)
-   ```
-
-   (`.env` is gitignored and only used by drizzle-kit — the Worker never reads it.)
-
----
-
-## 2. Cloudflare Worker (api)
-
-From `apps/api`:
+### 2. Cloudflare — Hyperdrive (one per database)
 
 ```bash
-pnpm exec wrangler login        # opens a browser; or: ! pnpm exec wrangler login
+wrangler login
+wrangler hyperdrive create aifw-prod --connection-string="<prod session-pooler URL>"
+wrangler hyperdrive create aifw-dev  --connection-string="<dev session-pooler URL>"
 ```
 
-1. **Create a Hyperdrive config** pointing at the Supabase Session-pooler string:
+Put the printed ids into `apps/api/wrangler.jsonc`:
 
-   ```bash
-   pnpm exec wrangler hyperdrive create ai-fullstack-db \
-     --connection-string="postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres"
-   ```
+- `REPLACE_WITH_PROD_HYPERDRIVE_ID` → in `env.production`
+- `REPLACE_WITH_DEV_HYPERDRIVE_ID` → in **both** the top-level config (used by
+  previews) and `env.dev`
 
-   Copy the printed **id** into `apps/api/wrangler.jsonc` →
-   `hyperdrive[0].id` (replacing `REPLACE_WITH_YOUR_HYPERDRIVE_ID`).
+(The Hyperdrive id is not a secret — the DB credentials live inside the
+Hyperdrive config on Cloudflare. Commit the ids.)
 
-2. **Deploy:**
+### 3. GitHub — secrets
 
-   ```bash
-   pnpm --filter @repo/api deploy      # or: pnpm deploy:api
-   ```
+Repo → Settings → Secrets and variables → Actions → **Secrets**:
 
-   Note the URL it prints, e.g.
-   `https://ai-fullstack-workflow-api.<your-subdomain>.workers.dev`.
+| Secret | What |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Token with **Workers Scripts: Edit**, **Workers Routes: Edit**, **DNS: Edit**, **Account: Read** on the `w3ctech.dev` account/zone |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
+| `CLOUDFLARE_ZONE_ID` | Zone id for `w3ctech.dev` |
+| `DATABASE_URL_DEV` | dev Supabase session-pooler URL (used for migrations) |
+| `DATABASE_URL_PROD` | prod Supabase session-pooler URL (used for migrations) |
 
-3. Verify:
-
-   ```bash
-   curl https://ai-fullstack-workflow-api.<sub>.workers.dev/health
-   curl https://ai-fullstack-workflow-api.<sub>.workers.dev/trpc/todos.list
-   ```
-
-> The Hyperdrive `id` is the only thing you must commit. The Supabase
-> credentials live inside the Hyperdrive config on Cloudflare, never in the repo.
+Optional: create GitHub **Environments** `dev` and `production` (Settings →
+Environments) and add required reviewers on `production` for a manual approval
+gate on the production deploy.
 
 ---
 
-## 3. Vercel (web)
+## How each deploy works
 
-1. Import the GitHub repo at https://vercel.com/new.
-2. **Root Directory → `apps/web`.** Vercel reads `apps/web/vercel.json`
-   (framework `nextjs`; install/build run from the monorepo root so the pnpm
-   workspace links correctly).
-3. **Environment variable:**
+- **Preview** (`.github/workflows/preview.yml`): on a PR to `dev`, deploys
+  `aifw-api-pr-<N>` and `aifw-web-pr-<N>` Workers, attaches the
+  `preview-<N>[-api].w3ctech.dev` custom domains (auto-creates DNS via
+  `.github/scripts/cf-attach-domain.sh`), and comments the URLs. Previews use
+  the dev DB, so no migration runs.
+- **Teardown** (`preview-teardown.yml`): on PR close, detaches the domains and
+  deletes both Workers (`cf-teardown-preview.sh`).
+- **Dev** (`deploy-dev.yml`): on push to `dev`, migrates the dev DB, then
+  `wrangler deploy --env dev` for api and OpenNext build + deploy for web.
+- **Production** (`deploy-prod.yml`): manual — Actions → **Deploy production** →
+  run workflow, type `deploy` to confirm. Migrates the prod DB and deploys
+  `--env production`. Checks out `main`.
 
-   ```
-   NEXT_PUBLIC_API_URL = https://ai-fullstack-workflow-api.<your-subdomain>.workers.dev
-   ```
-
-4. Deploy. Vercel gives you a URL like `https://<app>.vercel.app`.
+The api `build` (`wrangler deploy --dry-run`) and the web OpenNext build run in
+**CI** on every PR, so a broken bundle fails before any deploy.
 
 ---
 
-## 4. Wire CORS (one-time, after you know the Vercel URL)
-
-The Worker only allows requests from `CORS_ORIGIN`. Point it at the Vercel
-domain — either edit `apps/api/wrangler.jsonc` (`vars.CORS_ORIGIN`) and
-re-deploy, or set it without a commit:
+## Production release flow (no PR into main)
 
 ```bash
-# Cloudflare dashboard: Workers & Pages → ai-fullstack-workflow-api →
-# Settings → Variables and Secrets → add CORS_ORIGIN = https://<app>.vercel.app
-# then redeploy, or:
-cd apps/api && pnpm exec wrangler deploy --var CORS_ORIGIN:https://<app>.vercel.app
+git checkout main && git pull
+git merge --ff-only dev      # or fast-forward to the commit you want to ship
+git push origin main         # main allows direct pushes
+# then: GitHub → Actions → "Deploy production" → Run workflow → confirm: deploy
 ```
 
-Re-deploy the Worker after changing it. Done — the web app now talks to the
-Worker, which queries Supabase through Hyperdrive.
-
----
-
-## Local development (no cloud needed)
-
-`wrangler dev` runs the Worker in the real Workers runtime, and the Hyperdrive
-binding's `localConnectionString` points at the Docker Postgres:
+## Local development
 
 ```bash
 docker compose up -d db
-cd apps/api && pnpm db:migrate    # with .env DATABASE_URL = local docker
-pnpm dev                          # from repo root: web :3000 + worker :3001
+cp apps/api/.env.example apps/api/.env      # DATABASE_URL = local docker
+pnpm db:migrate
+pnpm dev                                     # web :3000, worker :3001 (Hyperdrive → local pg)
 ```
 
-## Notes & gotchas
+## Notes
 
-- **Supabase free projects pause after ~1 week of inactivity** — the first
-  request after that will fail until you resume it from the dashboard.
-- Use the **Session pooler** string, not the Transaction pooler (`6543`):
-  Hyperdrive does its own pooling and session mode is the compatible choice.
-  The driver is already set with `prepare: false`.
-- `nodejs_compat` (in `wrangler.jsonc`) is required for the `postgres` driver
-  to run on Workers — don't remove it.
-- CI builds the Worker with `wrangler deploy --dry-run` (no account needed), so
-  a broken Worker bundle fails the `build` check before you ever deploy.
+- Web is **Next.js on Workers via `@opennextjs/cloudflare`** (not Pages) so the
+  GitHub Actions can control the exact `preview-<N>` domain names and teardown.
+- `NEXT_PUBLIC_API_URL` is baked at **build time**, so each environment's web is
+  built separately with its own API URL.
+- Never run a bare `wrangler deploy` for the api — always `--env dev` /
+  `--env production` (bare deploy would publish the prod-named Worker against the
+  dev DB). Previews use `--name aifw-*-pr-<N>`.
+- Supabase free projects pause after ~1 week idle; resume from the dashboard.

@@ -6,8 +6,8 @@ A type-safe full-stack monorepo powered by [Turborepo](https://turbo.build) and 
 
 | App / Package              | Tech                                                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
-| `apps/web`                 | Next.js 16 (App Router) · Tailwind CSS v4 · shadcn/ui · React Query — deploys to **Vercel** |
-| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM — runs on **Cloudflare Workers** (Hyperdrive → **Supabase** Postgres) |
+| `apps/web`                 | Next.js 16 (App Router) · Tailwind CSS v4 · shadcn/ui · React Query — **Cloudflare Workers** via OpenNext |
+| `apps/api`                 | Hono · tRPC v11 · Zod · Drizzle ORM — **Cloudflare Workers** (Hyperdrive → **Supabase** Postgres) |
 | `packages/typescript-config` | Shared `tsconfig` presets                                             |
 
 Tooling: **Biome** (lint + format), **husky** + **lint-staged** (git hooks),
@@ -75,12 +75,19 @@ pnpm db:migrate    # applies it
 
 ## Deployment
 
-Web → **Vercel**, API → **Cloudflare Workers** (Hyperdrive), DB → **Supabase**,
-all on free tiers. See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the full guide.
+Web + API both run on **Cloudflare Workers** (web via OpenNext), DB on
+**Supabase** behind **Hyperdrive** — all free tier. GitHub Actions handle it:
 
-```bash
-pnpm deploy:api    # wrangler deploy (after wrangler login + Hyperdrive setup)
-```
+| Trigger | Deploys |
+| --- | --- |
+| Open a PR → `dev` | preview: `preview-<N>.w3ctech.dev` + `preview-<N>-api.w3ctech.dev` |
+| Close the PR | preview torn down automatically |
+| Merge to `dev` | `dev.w3ctech.dev` + `dev-api.w3ctech.dev` |
+| `dev` → `main`, then manual Actions run | `w3ctech.dev` + `api.w3ctech.dev` |
+
+Branch model: **`dev`** is the default/protected branch (PR + CI required);
+`main` is production (direct push, manual deploy). Full guide + required secrets:
+**[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 ## Docker
 
