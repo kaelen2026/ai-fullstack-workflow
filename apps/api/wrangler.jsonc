@@ -3,27 +3,35 @@
   "name": "ai-fullstack-workflow-api",
   "main": "src/index.ts",
   "compatibility_date": "2025-04-01",
-  // nodejs_compat lets the postgres.js driver run on the Workers runtime.
   "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true
-  },
-  "vars": {
-    // Override in production with the deployed web origin (Vercel URL),
-    // e.g. via `wrangler deploy --var CORS_ORIGIN:https://<app>.vercel.app`
-    // or the Cloudflare dashboard.
-    "CORS_ORIGIN": "http://localhost:3000"
-  },
+  "observability": { "enabled": true },
+
+  // ── Default (top-level) config ────────────────────────────────────────────
+  // Used by `wrangler dev` and by PR previews (deployed with `--name aifw-api-pr-N`).
+  // Previews share the dev database, so the default Hyperdrive points at dev.
+  "vars": { "CORS_ORIGIN": "http://localhost:3000" },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      // Replace with the id printed by `wrangler hyperdrive create` (see DEPLOYMENT.md).
-      "id": "REPLACE_WITH_YOUR_HYPERDRIVE_ID",
-      // Used only by `wrangler dev` — points at the local Docker Postgres.
+      "id": "REPLACE_WITH_DEV_HYPERDRIVE_ID",
       "localConnectionString": "postgres://postgres:postgres@localhost:5432/app"
     }
   ],
-  "dev": {
-    "port": 3001
+  "dev": { "port": 3001 },
+
+  // ── Named environments (deployed with `wrangler deploy --env <name>`) ───────
+  "env": {
+    "dev": {
+      "name": "ai-fullstack-workflow-api-dev",
+      "vars": { "CORS_ORIGIN": "https://dev.w3ctech.dev" },
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_DEV_HYPERDRIVE_ID" }],
+      "routes": [{ "pattern": "dev-api.w3ctech.dev", "custom_domain": true }]
+    },
+    "production": {
+      "name": "ai-fullstack-workflow-api",
+      "vars": { "CORS_ORIGIN": "https://w3ctech.dev" },
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_PROD_HYPERDRIVE_ID" }],
+      "routes": [{ "pattern": "api.w3ctech.dev", "custom_domain": true }]
+    }
   }
 }

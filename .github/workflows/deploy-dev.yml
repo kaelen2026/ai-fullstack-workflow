@@ -1,0 +1,42 @@
+name: Deploy dev
+
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate dev database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+        run: pnpm --filter @repo/api exec drizzle-kit migrate
+
+      - name: Deploy API (dev)
+        run: pnpm --filter @repo/api exec wrangler deploy --env dev
+
+      - name: Build & deploy Web (dev)
+        env:
+          NEXT_PUBLIC_API_URL: https://dev-api.w3ctech.dev
+        run: |
+          set -euo pipefail
+          pnpm --filter @repo/web exec opennextjs-cloudflare build
+          pnpm --filter @repo/web exec wrangler deploy --env dev

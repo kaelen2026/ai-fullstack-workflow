@@ -1,0 +1,50 @@
+name: Deploy production
+
+# Manual only — production is promoted by hand after merging dev → main.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deploy'
+        required: true
+        default: ''
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.confirm == 'deploy' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate production database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+        run: pnpm --filter @repo/api exec drizzle-kit migrate
+
+      - name: Deploy API (production)
+        run: pnpm --filter @repo/api exec wrangler deploy --env production
+
+      - name: Build & deploy Web (production)
+        env:
+          NEXT_PUBLIC_API_URL: https://api.w3ctech.dev
+        run: |
+          set -euo pipefail
+          pnpm --filter @repo/web exec opennextjs-cloudflare build
+          pnpm --filter @repo/web exec wrangler deploy --env production
