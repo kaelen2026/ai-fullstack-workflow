@@ -16,6 +16,7 @@
     "db:migrate": "turbo run db:migrate",
     "db:push": "turbo run db:push",
     "db:studio": "pnpm --filter @repo/api db:studio",
+    "deploy:api": "pnpm --filter @repo/api deploy",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "turbo run build && changeset publish",
