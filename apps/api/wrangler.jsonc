@@ -19,7 +19,7 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "REPLACE_WITH_DEV_HYPERDRIVE_ID",
+      "id": "125cdd01b2f24745af731c06045113dd",
       "localConnectionString": "postgres://postgres:postgres@localhost:5432/app"
     }
   ],
@@ -35,7 +35,7 @@
         "CORS_ORIGIN": "https://dev.w3ctech.dev",
         "BETTER_AUTH_URL": "https://dev-api.w3ctech.dev"
       },
-      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_DEV_HYPERDRIVE_ID" }],
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "125cdd01b2f24745af731c06045113dd" }],
       "routes": [{ "pattern": "dev-api.w3ctech.dev", "custom_domain": true }]
     },
     "production": {
