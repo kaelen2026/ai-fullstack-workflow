@@ -25,18 +25,22 @@ web (Next on Workers) ──useTRPC()──▶ /trpc ──▶ Hono app (Worker)
 ```
 
 No env or db at module scope on Workers — both are built **per request** in
-`createContext` (`apps/api/src/trpc/trpc.ts`). Always reach them through `ctx`.
+`createContext` (`apps/api/src/core/trpc/trpc.ts`). Always reach them through `ctx`.
 
-## Anatomy of a router
+## Anatomy of a module
 
-`apps/api/src/trpc/routers/<resource>.ts` — one router per resource:
+The API is organized by **feature module**: shared infrastructure in `core/`, one
+vertical slice per resource in `modules/<resource>/`. A module owns its table
+(`<resource>.schema.ts`) and its router (`<resource>.router.ts`).
+
+`apps/api/src/modules/<resource>/<resource>.router.ts` — one router per resource:
 
 ```ts
 import { TRPCError } from '@trpc/server'
 import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { widgets } from '../../db/schema'
-import { protectedProcedure, router } from '../trpc'
+import { protectedProcedure, router } from '../../core/trpc/trpc'
+import { widgets } from './widgets.schema'
 
 export const widgetsRouter = router({
   list: protectedProcedure.query(({ ctx }) =>
@@ -74,10 +78,10 @@ export const widgetsRouter = router({
 })
 ```
 
-Then register it in `apps/api/src/trpc/router.ts`:
+Then register it in `apps/api/src/core/trpc/router.ts`:
 
 ```ts
-import { widgetsRouter } from './routers/widgets'
+import { widgetsRouter } from '../../modules/widgets/widgets.router'
 // ...
 export const appRouter = router({
   health: publicProcedure.query(() => ({ status: 'ok' as const })),
@@ -86,11 +90,11 @@ export const appRouter = router({
 })
 ```
 
-`todos.ts` is the reference implementation — mirror it.
+The `todos` module (`apps/api/src/modules/todos/`) is the reference implementation — mirror it.
 
 ## Adding an endpoint — checklist
 
-1. **Need a table?** Edit `apps/api/src/db/schema.ts`, then `pnpm db:generate` && `pnpm db:migrate` (not `db:push` — it needs a TTY). Scope app tables to a user with a `userId` FK + `onDelete: 'cascade'`.
+1. **Need a table?** Add `apps/api/src/modules/<name>/<name>.schema.ts` and re-export it from `apps/api/src/core/db/schema.ts`, then `pnpm db:generate` && `pnpm db:migrate` (not `db:push` — it needs a TTY). Scope app tables to a user with a `userId` FK + `onDelete: 'cascade'`.
 2. **Pick the procedure base:** `protectedProcedure` for user-owned data, `publicProcedure` only if truly unauthenticated.
 3. **Pick query vs mutation:** reads → `.query()`, writes → `.mutation()`.
 4. **Validate input** with `.input(z.object({...}))` — tight bounds, no loose strings/numbers.

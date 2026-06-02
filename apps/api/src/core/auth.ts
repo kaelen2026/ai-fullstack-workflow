@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import type { Bindings } from './bindings'
+import type { Bindings } from '../bindings'
 import { type Database, schema } from './db'
 
 /**

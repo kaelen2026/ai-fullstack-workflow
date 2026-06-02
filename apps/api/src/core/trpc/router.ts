@@ -1,4 +1,4 @@
-import { todosRouter } from './routers/todos'
+import { todosRouter } from '../../modules/todos/todos.router'
 import { publicProcedure, router } from './trpc'
 
 export const appRouter = router({

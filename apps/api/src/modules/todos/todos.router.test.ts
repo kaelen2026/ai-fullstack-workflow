@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTodoInput, todoIdInput } from './todos'
+import { createTodoInput, todoIdInput } from './todos.router'
 
 describe('createTodoInput', () => {
   it('accepts a normal title', () => {

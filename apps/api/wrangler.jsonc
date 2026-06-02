@@ -10,7 +10,7 @@
   // Used by `wrangler dev` and by PR previews (deployed with `--name aifw-api-pr-N`).
   // Previews share the dev database, so the default Hyperdrive points at dev.
   // BETTER_AUTH_URL is the public origin of THIS api (where /api/auth/* lives);
-  // an https:// value flips better-auth to cross-site Secure cookies (src/auth.ts).
+  // an https:// value flips better-auth to cross-site Secure cookies (src/core/auth.ts).
   // Previews override it via `--var BETTER_AUTH_URL:...` in the preview workflow.
   "vars": {
     "CORS_ORIGIN": "http://localhost:3000",

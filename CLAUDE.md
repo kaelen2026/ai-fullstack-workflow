@@ -46,7 +46,7 @@ pnpm db:push               # push schema directly — INTERACTIVE, needs a TTY (
 pnpm db:studio             # Drizzle Studio
 ```
 
-After editing `apps/api/src/db/schema.ts`, run `db:generate` then `db:migrate`. `db:push` prompts for confirmation and will fail in a non-TTY shell — prefer the generate/migrate flow when running programmatically.
+After editing a module's schema (`apps/api/src/modules/<name>/<name>.schema.ts`), run `db:generate` then `db:migrate`. `db:push` prompts for confirmation and will fail in a non-TTY shell — prefer the generate/migrate flow when running programmatically.
 
 ### Releases
 
@@ -58,9 +58,34 @@ There is no test runner configured yet.
 
 Turborepo + pnpm-workspace monorepo. Dependency versions for shared tooling/libs are pinned centrally in the `catalog:` block of `pnpm-workspace.yaml` (referenced as `"catalog:"` in each package.json) — bump versions there, not per-package.
 
-- **`apps/api`** — Hono app (`src/index.ts`, `export default app`) running on **Cloudflare Workers**, mounting tRPC v11 at `/trpc` via `@hono/trpc-server`, plus `/health`. Worker bindings are typed in `src/bindings.ts` (`HYPERDRIVE`, `CORS_ORIGIN`). There is no module-scope env or db on Workers: the request `Context` in `src/trpc/trpc.ts` builds a Drizzle client per request via `createDb(c.env.HYPERDRIVE.connectionString)` (`src/db/index.ts`, postgres-js). tRPC procedures live in `src/trpc/routers/*` and compose into `appRouter` in `src/trpc/router.ts`.
+- **`apps/api`** — Hono app (`src/index.ts`, `export default app`) running on **Cloudflare Workers**, mounting tRPC v11 at `/trpc` via `@hono/trpc-server`, plus `/health`. Worker bindings are typed in `src/bindings.ts` (`HYPERDRIVE`, `CORS_ORIGIN`). The source is organized **modularly** (see [structure](#apps-api-structure-modular) below): cross-cutting infrastructure in `src/core/*`, one self-contained feature slice per resource in `src/modules/<name>/*`. There is no module-scope env or db on Workers: the request `Context` in `src/core/trpc/trpc.ts` builds a Drizzle client per request via `createDb(c.env.HYPERDRIVE.connectionString)` (`src/core/db/index.ts`, postgres-js). tRPC procedures live in `src/modules/<name>/<name>.router.ts` and compose into `appRouter` in `src/core/trpc/router.ts`.
 - **`apps/web`** — Next.js 16 App Router, deployed to **Cloudflare Workers via `@opennextjs/cloudflare`** (`open-next.config.ts` + `wrangler.jsonc`; `cf-build`/`deploy` scripts). The tRPC client uses the modern `@trpc/tanstack-react-query` integration: `src/trpc/client.tsx` exports `useTRPC` + `TRPCReactProvider` (wrapped around the app in `layout.tsx`). Components call `useQuery(trpc.x.queryOptions())` / `useMutation(trpc.x.mutationOptions())`. shadcn/ui (new-york style, Tailwind v4) lives under `src/components/ui`, `cn` in `src/lib/utils.ts`. `NEXT_PUBLIC_API_URL` (the api origin) is baked at build time, so each environment is built separately.
 - **`packages/typescript-config`** — shared `base.json` / `nextjs.json` / `node.json` tsconfigs (strict, `verbatimModuleSyntax`, bundler resolution).
+
+<a id="apps-api-structure-modular"></a>
+### `apps/api` structure (modular)
+
+The API is organized by **feature module**, not by technical layer. Shared infrastructure lives in `core/`; each resource is a vertical slice in `modules/<name>/` owning its own schema + router (+ tests):
+
+```
+src/
+  index.ts                       # Hono app: wires CORS, auth handler, tRPC
+  bindings.ts                    # Worker bindings (HYPERDRIVE, CORS_ORIGIN, …)
+  core/                          # cross-cutting infrastructure
+    auth.ts                      # createAuth (per-request better-auth)
+    db/index.ts                  # createDb (per-request Drizzle client)
+    db/schema.ts                 # aggregator: re-exports every module's tables
+    trpc/trpc.ts                 # initTRPC, createContext, public/protectedProcedure
+    trpc/router.ts               # appRouter — composes the module routers
+  modules/
+    auth/auth.schema.ts          # better-auth tables (user/session/account/verification)
+    todos/
+      todos.schema.ts            # Drizzle table + inferred types
+      todos.router.ts            # tRPC procedures (+ exported zod inputs)
+      todos.router.test.ts       # unit tests for the input schemas
+```
+
+**Adding a module:** create `modules/<name>/<name>.schema.ts` (table) and `<name>.router.ts` (router), re-export the schema from `core/db/schema.ts`, and register the router in `core/trpc/router.ts`. Cross-module table references are explicit imports (e.g. `todos.schema.ts` imports `user` from `../auth/auth.schema`). `drizzle.config.ts` and `createDb` both read the single aggregated `core/db/schema.ts`.
 
 ### Branches & environments
 
@@ -72,12 +97,12 @@ Turborepo + pnpm-workspace monorepo. Dependency versions for shared tooling/libs
 
 ### Cross-package type safety (the key wiring)
 
-The web app gets full end-to-end types with **no codegen**: `apps/api` exposes its router type via the `"./trpc"` export (`package.json` → `./src/trpc/router.ts`), and web imports `import type { AppRouter } from '@repo/api/trpc'`. This is type-only — no API runtime code is bundled into web. When you add/rename a procedure in the API, the web call sites type-check against it immediately.
+The web app gets full end-to-end types with **no codegen**: `apps/api` exposes its router type via the `"./trpc"` export (`package.json` → `./src/core/trpc/router.ts`), and web imports `import type { AppRouter } from '@repo/api/trpc'`. This is type-only — no API runtime code is bundled into web. When you add/rename a procedure in the API, the web call sites type-check against it immediately.
 
 ### Authentication (better-auth)
 
-- The API builds a **per-request** better-auth instance in `apps/api/src/auth.ts` (`createAuth(db, env)`) — same reason as the db: no module-scope env on Workers. It uses the drizzle adapter (`provider: 'pg'`) over the request's Drizzle client. The handler is mounted in `src/index.ts` at `/api/auth/*`; the four auth tables (`user`, `session`, `account`, `verification`) live in `src/db/schema.ts`.
-- `src/trpc/trpc.ts` resolves the session via `auth.api.getSession` into `ctx.user` and exposes **`protectedProcedure`** (throws `UNAUTHORIZED` when unauthenticated). `todos` are scoped per-user (`todos.userId` FK) and use `protectedProcedure`.
+- The API builds a **per-request** better-auth instance in `apps/api/src/core/auth.ts` (`createAuth(db, env)`) — same reason as the db: no module-scope env on Workers. It uses the drizzle adapter (`provider: 'pg'`) over the request's Drizzle client. The handler is mounted in `src/index.ts` at `/api/auth/*`; the four auth tables (`user`, `session`, `account`, `verification`) live in `src/modules/auth/auth.schema.ts`.
+- `src/core/trpc/trpc.ts` resolves the session via `auth.api.getSession` into `ctx.user` and exposes **`protectedProcedure`** (throws `UNAUTHORIZED` when unauthenticated). `todos` are scoped per-user (`todos.userId` FK) and use `protectedProcedure`.
 - **Cross-site cookies:** web and api are different sites in prod, so the session cookie is `SameSite=None; Secure` (gated on `BETTER_AUTH_URL` being `https://`) and both clients send `credentials: 'include'`. Locally everything is `http://localhost` (same site) → `SameSite=Lax`. `CORS_ORIGIN` must be the exact web origin.
 - Web client: `src/lib/auth-client.ts` (`better-auth/react`) exports `signIn` / `signUp` / `signOut` / `useSession`. Secrets (`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`) are Worker secrets / `.dev.vars`; `BETTER_AUTH_URL` is a `wrangler.jsonc` var. See `DEPLOYMENT.md`.
 - **kysely pin:** `pnpm.overrides` pins `kysely@^0.28.17`. better-auth's (unused) kysely sqlite dialects import migration constants that 0.29.x moved off the main entry, which breaks the Worker bundle. Don't drop the override.
