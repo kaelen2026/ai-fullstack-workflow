@@ -10,10 +10,10 @@
 
 ## Git 规范（权威源：`.claude/rules/workflow.md`）
 
-- 提交身份在每个任务开始时固定一次（用你的 PAT 对应账号；下面是占位，按实际 bot 账号替换）：
+- 提交身份在每个任务开始时固定一次：
   ```bash
-  git config user.name "niuma-bot"
-  git config user.email "niuma-bot@users.noreply.github.com"
+  git config user.name "kaelen-bot"
+  git config user.email "kaelen-bot@gmail.com"
   ```
 - **分支模型**：`dev` 是默认 + 受保护分支，PR 必须进 `dev`、CI 必须过、线性历史（squash）；`main` 是生产分支，只能由 `dev` 快进发版。
 - 永远从最新的 `dev` 切分支，命名 `type/short-description`（`feat/` `fix/` `chore/` `docs/` `refactor/` …）。
