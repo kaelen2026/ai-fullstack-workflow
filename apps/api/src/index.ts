@@ -4,10 +4,14 @@ import { cors } from 'hono/cors'
 import { createAuth } from './auth'
 import type { Bindings } from './bindings'
 import { createDb } from './db'
+import { type LoggerVariables, requestLogger } from './middleware/logger'
 import { appRouter } from './trpc/router'
 import { createContext } from './trpc/trpc'
 
-const app = new Hono<{ Bindings: Bindings }>()
+const app = new Hono<{ Bindings: Bindings; Variables: LoggerVariables }>()
+
+// Structured per-request logging to Workers Logs — first so it wraps everything.
+app.use('*', requestLogger)
 
 app.get('/', (c) => c.json({ service: 'api', status: 'ok' }))
 app.get('/health', (c) => c.json({ status: 'healthy' }))
