@@ -1,0 +1,6 @@
+{
+  "extends": "@repo/typescript-config/node.json",
+  "comment": "Type-check only — tsup handles the build output, so no rootDir/outDir.",
+  "include": ["src/**/*.ts", "drizzle.config.ts", "tsup.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

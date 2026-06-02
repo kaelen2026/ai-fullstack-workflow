@@ -1,0 +1,36 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Native packages allowed to run install scripts (esbuild powers tsup; sharp
+# powers Next.js image optimization).
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+
+catalog:
+  # Tooling
+  typescript: ^5.9.3
+  turbo: ^2.5.8
+  "@biomejs/biome": ^2.2.4
+  "@changesets/cli": ^2.29.7
+  "@commitlint/cli": ^19.8.1
+  "@commitlint/config-conventional": ^19.8.1
+  husky: ^9.1.7
+  lint-staged: ^16.2.4
+  "@types/node": ^22.18.9
+
+  # React / Next
+  react: ^19.2.0
+  react-dom: ^19.2.0
+  "@types/react": ^19.2.2
+  "@types/react-dom": ^19.2.1
+
+  # Validation
+  zod: ^4.1.12
+
+  # tRPC + React Query
+  "@trpc/server": ^11.7.1
+  "@trpc/client": ^11.7.1
+  "@trpc/tanstack-react-query": ^11.7.1
+  "@tanstack/react-query": ^5.90.5
