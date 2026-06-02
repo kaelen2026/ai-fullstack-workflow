@@ -49,3 +49,4 @@ apps/api/drizzle/meta/_journal.bak
 
 # OpenNext (Cloudflare) build output
 .open-next/
+.gstack/
