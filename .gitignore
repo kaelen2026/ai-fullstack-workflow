@@ -20,8 +20,8 @@ next-env.d.ts
 .dev.vars
 .dev.vars.*
 
-# Vercel
-.vercel/
+# Claude Code local worktrees
+.claude/worktrees/
 
 # Env
 .env
@@ -45,3 +45,6 @@ coverage/
 
 # Drizzle local
 apps/api/drizzle/meta/_journal.bak
+
+# OpenNext (Cloudflare) build output
+.open-next/

@@ -12,7 +12,16 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/.next", "!**/dist", "!**/drizzle", "!**/.turbo"]
+    "includes": [
+      "**",
+      "!**/.next",
+      "!**/dist",
+      "!**/drizzle",
+      "!**/.turbo",
+      "!**/.open-next",
+      "!**/.claude/worktrees",
+      "!**/.wrangler"
+    ]
   },
   "formatter": {
     "enabled": true,
