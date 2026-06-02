@@ -1,14 +1,14 @@
 # Workflow rules
 
-How changes land in this repo. `main` is protected — no direct pushes, PR required, CI must pass, linear history.
+How changes land in this repo. `dev` is the default + protected branch — no direct pushes, PR required, CI must pass, linear history. `main` is production and allows **direct pushes** (promote `dev` → `main` to release; see [Production](#production)).
 
 ## Branch
 
-- Always branch off an up-to-date `main`. Never commit directly to `main`.
+- Always branch off an up-to-date `dev`. Never commit directly to `dev` — open a PR.
 - Name branches `type/short-description` matching the commit type: `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, …
 
 ```bash
-git switch main && git pull
+git switch dev && git pull
 git switch -c feat/todo-filtering
 ```
 
@@ -46,17 +46,31 @@ git push -u origin feat/todo-filtering
 gh pr create --fill
 ```
 
-CI must pass before merge: **Lint · Types · Build** and **commitlint** on every commit. The branch must be **up to date with `main`** (strict checks) — rebase and push again if `main` moved.
+PRs target `dev`. CI must pass before merge: **Lint · Types · Build** and **commitlint** on every commit. The branch must be **up to date with `dev`** (strict checks) — rebase and push again if `dev` moved.
 
 ## Merge
 
-- Squash merge only (`main` requires linear history — merge commits are rejected).
+- Squash merge only (`dev` requires linear history — merge commits are rejected).
 - Resolve all review threads first; unresolved threads block merging.
 - Delete the branch after merge.
 
 ```bash
 gh pr merge <number> --squash --delete-branch
 ```
+
+A merge to `dev` deploys the **dev** environment (`dev[-api].w3ctech.dev`).
+
+## Production
+
+`main` is production and takes **direct pushes** — no PR. Promote `dev` to `main`, then trigger the production deploy manually (`workflow_dispatch`):
+
+```bash
+git switch main && git pull
+git merge --ff-only dev
+git push          # then run the production deploy workflow (workflow_dispatch)
+```
+
+If a fast-forward isn't possible, reconcile on `dev` first — keep `main` a clean descendant of `dev`. See the `deploy` skill / `DEPLOYMENT.md` for the full environment model.
 
 ## Database changes
 
