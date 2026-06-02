@@ -4,10 +4,12 @@ How API endpoints are shaped in this repo. The API is **tRPC v11** procedures mo
 
 ## Where things live
 
-- Procedures group into routers under `apps/api/src/trpc/routers/*.ts` (one router per resource, e.g. `todos.ts`).
-- Compose each router into `appRouter` in `apps/api/src/trpc/router.ts`.
-- Building blocks (`router`, `publicProcedure`, `protectedProcedure`, `middleware`) come from `apps/api/src/trpc/trpc.ts` — import them, don't re-init tRPC.
-- Tables live in `apps/api/src/db/schema.ts`; a schema change follows the DB flow in [`workflow.md`](./workflow.md) (`pnpm db:generate` → `pnpm db:migrate`).
+The API is organized **modularly**: cross-cutting infrastructure in `apps/api/src/core/*`, one self-contained feature slice per resource in `apps/api/src/modules/<name>/*`.
+
+- Procedures live in a per-resource router at `apps/api/src/modules/<name>/<name>.router.ts` (one router per resource, e.g. `todos/todos.router.ts`).
+- Compose each router into `appRouter` in `apps/api/src/core/trpc/router.ts`.
+- Building blocks (`router`, `publicProcedure`, `protectedProcedure`, `middleware`) come from `apps/api/src/core/trpc/trpc.ts` — import them, don't re-init tRPC.
+- Tables live with their module: `apps/api/src/modules/<name>/<name>.schema.ts`, re-exported from the aggregator `apps/api/src/core/db/schema.ts`. A schema change follows the DB flow in [`workflow.md`](./workflow.md) (`pnpm db:generate` → `pnpm db:migrate`).
 
 ## Procedure rules
 

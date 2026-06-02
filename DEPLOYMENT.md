@@ -123,7 +123,7 @@ https://console.cloud.google.com/apis/credentials with the authorized redirect
 URI `<BETTER_AUTH_URL>/api/auth/callback/google` (one per env).
 
 Because web and api are different sites, the session cookie is issued
-`SameSite=None; Secure` (see `apps/api/src/auth.ts`) and the clients send
+`SameSite=None; Secure` (see `apps/api/src/core/auth.ts`) and the clients send
 `credentials: 'include'`. `CORS_ORIGIN` must be the exact web origin.
 
 > **PR previews** deploy ephemeral, dynamically-named api Workers

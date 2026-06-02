@@ -1,4 +1,4 @@
-import { boolean, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 // --- better-auth core tables ---------------------------------------------
 // JS property keys are camelCase (the field names better-auth's drizzle
@@ -55,18 +55,3 @@ export const verification = pgTable('verification', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
-
-// --- application tables ---------------------------------------------------
-
-export const todos = pgTable('todos', {
-  id: serial('id').primaryKey(),
-  title: text('title').notNull(),
-  completed: boolean('completed').notNull().default(false),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
-
-export type Todo = typeof todos.$inferSelect
-export type NewTodo = typeof todos.$inferInsert

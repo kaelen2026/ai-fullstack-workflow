@@ -66,7 +66,7 @@ account needed for local work.
 
 ## Database
 
-Drizzle schema lives in `apps/api/src/db/schema.ts`. After editing it:
+Drizzle tables live with their module in `apps/api/src/modules/<name>/<name>.schema.ts` (aggregated by `apps/api/src/core/db/schema.ts`). After editing a schema:
 
 ```bash
 pnpm db:generate   # writes SQL to apps/api/drizzle/

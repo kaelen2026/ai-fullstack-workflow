@@ -1,11 +1,11 @@
 import { trpcServer } from '@hono/trpc-server'
 import { type Context, Hono, type Next } from 'hono'
 import { cors } from 'hono/cors'
-import { createAuth } from './auth'
 import type { Bindings } from './bindings'
-import { createDb } from './db'
-import { appRouter } from './trpc/router'
-import { createContext } from './trpc/trpc'
+import { createAuth } from './core/auth'
+import { createDb } from './core/db'
+import { appRouter } from './core/trpc/router'
+import { createContext } from './core/trpc/trpc'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -38,4 +38,4 @@ app.use('/trpc/*', (c, next) =>
 )
 
 export default app
-export type { AppRouter } from './trpc/router'
+export type { AppRouter } from './core/trpc/router'

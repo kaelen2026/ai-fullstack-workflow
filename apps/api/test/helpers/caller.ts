@@ -1,6 +1,6 @@
-import type { Database } from '../../src/db'
-import { appRouter } from '../../src/trpc/router'
-import { type Context, createCallerFactory } from '../../src/trpc/trpc'
+import type { Database } from '../../src/core/db'
+import { appRouter } from '../../src/core/trpc/router'
+import { type Context, createCallerFactory } from '../../src/core/trpc/trpc'
 
 const createCaller = createCallerFactory(appRouter)
 

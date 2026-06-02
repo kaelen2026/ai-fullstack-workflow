@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import type { Context as HonoContext } from 'hono'
+import type { Bindings } from '../../bindings'
 import { createAuth } from '../auth'
-import type { Bindings } from '../bindings'
 import { createDb } from '../db'
 
 /**
