@@ -12,8 +12,9 @@ test('sign up, manage a todo, then sign out', async ({ page }) => {
 
   await page.goto('/login')
 
-  // Switch from the default sign-in view to sign-up and register.
-  await page.getByRole('button', { name: 'Sign up' }).click()
+  // The footer "Sign up" is now a link to the /register page (route group).
+  await page.getByRole('link', { name: 'Sign up' }).click()
+  await expect(page).toHaveURL(/\/register$/)
   await page.getByPlaceholder('Name').fill('E2E User')
   await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('Password').fill('password123')
