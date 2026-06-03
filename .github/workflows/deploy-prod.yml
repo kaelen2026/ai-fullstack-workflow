@@ -36,7 +36,7 @@ jobs:
       - name: Migrate production database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
-        run: pnpm --filter @repo/api exec drizzle-kit migrate
+        run: pnpm --filter @repo/db exec drizzle-kit migrate
 
       - name: Deploy API (production)
         run: pnpm --filter @repo/api exec wrangler deploy --env production

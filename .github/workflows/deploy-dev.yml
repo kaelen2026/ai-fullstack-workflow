@@ -28,7 +28,7 @@ jobs:
       - name: Migrate dev database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
-        run: pnpm --filter @repo/api exec drizzle-kit migrate
+        run: pnpm --filter @repo/db exec drizzle-kit migrate
 
       - name: Deploy API (dev)
         run: pnpm --filter @repo/api exec wrangler deploy --env dev

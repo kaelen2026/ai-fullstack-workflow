@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url'
+import { migrationsFolder } from '@repo/db/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
@@ -14,9 +14,7 @@ export default async function setup() {
 
   const client = postgres(TEST_DATABASE_URL, { max: 1 })
   const db = drizzle(client)
-  await migrate(db, {
-    migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)),
-  })
+  await migrate(db, { migrationsFolder })
   await client.end()
 }
 

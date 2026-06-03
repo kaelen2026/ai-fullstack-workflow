@@ -1,8 +1,8 @@
+import { todos } from '@repo/db'
 import { TRPCError } from '@trpc/server'
 import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { protectedProcedure, router } from '../../core/trpc/trpc'
-import { todos } from './todos.schema'
 
 /** Input schemas, exported so they can be unit-tested in isolation. */
 export const createTodoInput = z.object({ title: z.string().trim().min(1).max(256) })

@@ -1,4 +1,4 @@
-import type { Database } from '../../src/core/db'
+import type { Database } from '@repo/db'
 import { appRouter } from '../../src/core/trpc/router'
 import { type Context, createCallerFactory } from '../../src/core/trpc/trpc'
 

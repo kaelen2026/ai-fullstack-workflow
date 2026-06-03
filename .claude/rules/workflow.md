@@ -79,4 +79,4 @@ If a fast-forward isn't possible, reconcile on `dev` first — keep `main` a cle
 
 ## Database changes
 
-After editing a module's schema (`apps/api/src/modules/<name>/<name>.schema.ts`), run `pnpm db:generate` then `pnpm db:migrate`. Prefer the generate/migrate flow over `db:push` (interactive, needs a TTY, fails in scripts/CI).
+After editing a table in `@repo/db` (`packages/db/src/schema/<name>.ts`), run `pnpm db:generate` then `pnpm db:migrate`. Prefer the generate/migrate flow over `db:push` (interactive, needs a TTY, fails in scripts/CI).

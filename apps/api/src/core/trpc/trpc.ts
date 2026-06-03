@@ -1,8 +1,8 @@
+import { createDb } from '@repo/db'
 import { initTRPC, TRPCError } from '@trpc/server'
 import type { Context as HonoContext } from 'hono'
 import type { Bindings } from '../../bindings'
 import { createAuth } from '../auth'
-import { createDb } from '../db'
 
 /**
  * Per-request context. The Drizzle client is created here from the Hyperdrive

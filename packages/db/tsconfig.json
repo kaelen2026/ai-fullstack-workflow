@@ -1,0 +1,6 @@
+{
+  "extends": "@repo/typescript-config/node.json",
+  "comment": "Node package: the Drizzle client, schema, and drizzle-kit config all run on Node. The main entry is also bundled into the api Worker (esbuild handles the TS via the exports map).",
+  "include": ["src/**/*.ts", "drizzle.config.ts"],
+  "exclude": ["node_modules", "drizzle"]
+}

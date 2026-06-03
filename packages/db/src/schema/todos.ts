@@ -1,5 +1,5 @@
 import { boolean, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
-import { user } from '../auth/auth.schema'
+import { user } from './auth'
 
 // Todos are FK-scoped to the better-auth `user` table (cross-module reference).
 

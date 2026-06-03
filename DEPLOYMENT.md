@@ -137,7 +137,7 @@ Because web and api are different sites, the session cookie is issued
 
 ```bash
 docker compose up -d db
-cp apps/api/.env.example apps/api/.env            # DATABASE_URL = local docker (migrations)
+cp packages/db/.env.example packages/db/.env      # DATABASE_URL = local docker (migrations)
 cp apps/api/.dev.vars.example apps/api/.dev.vars  # BETTER_AUTH_SECRET (+ optional Google)
 pnpm db:migrate
 pnpm dev                                          # web :3000, worker :3001 (Hyperdrive → local pg)
