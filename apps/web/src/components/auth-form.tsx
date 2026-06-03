@@ -1,29 +1,63 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { type FormEvent, useState } from 'react'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { signIn, signUp } from '@/lib/auth-client'
 
 type Mode = 'signin' | 'signup'
 
-export function AuthForm() {
-  const [mode, setMode] = useState<Mode>('signin')
+// Mirror the better-auth constraints: a valid email and an 8+ char password,
+// plus a name when signing up. Trim so leading/trailing whitespace can't pass.
+const baseFields = {
+  email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email.'),
+  password: z.string().min(8, 'Password must be at least 8 characters.').max(128),
+}
+const signinSchema = z.object(baseFields)
+const signupSchema = z.object({
+  ...baseFields,
+  name: z.string().trim().min(1, 'Name is required.').max(128),
+})
+
+type FieldErrors = Partial<Record<'name' | 'email' | 'password', string>>
+
+// First zod message per field, ready to render under each input.
+function toFieldErrors(err: z.ZodError): FieldErrors {
+  const flat = err.flatten().fieldErrors as Record<string, string[] | undefined>
+  return { name: flat.name?.[0], email: flat.email?.[0], password: flat.password?.[0] }
+}
+
+export function AuthForm({ defaultMode = 'signin' }: { defaultMode?: Mode } = {}) {
+  const [mode] = useState<Mode>(defaultMode)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [pending, setPending] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
+
+    if (mode === 'signup') {
+      const parsed = signupSchema.safeParse({ name, email, password })
+      if (!parsed.success) return setFieldErrors(toFieldErrors(parsed.error))
+      setPending(true)
+      const { error } = await signUp.email(parsed.data)
+      setPending(false)
+      if (error) setError(error.message ?? 'Something went wrong.')
+      return
+    }
+
+    const parsed = signinSchema.safeParse({ email, password })
+    if (!parsed.success) return setFieldErrors(toFieldErrors(parsed.error))
     setPending(true)
-    const { error } =
-      mode === 'signup'
-        ? await signUp.email({ name, email, password })
-        : await signIn.email({ email, password })
+    const { error } = await signIn.email(parsed.data)
     setPending(false)
     // On success the useSession hook re-renders the parent into the app.
     if (error) setError(error.message ?? 'Something went wrong.')
@@ -53,32 +87,42 @@ export function AuthForm() {
 
       <form onSubmit={onSubmit} className="space-y-3">
         {mode === 'signup' && (
-          <Input
-            type="text"
-            placeholder="Name"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          <div className="space-y-1.5">
+            <Input
+              type="text"
+              placeholder="Name"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={!!fieldErrors.name}
+            />
+            {fieldErrors.name && <p className="text-destructive text-sm">{fieldErrors.name}</p>}
+          </div>
         )}
-        <Input
-          type="email"
-          placeholder="you@example.com"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          type="password"
-          placeholder="Password"
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={8}
-          required
-        />
+        <div className="space-y-1.5">
+          <Input
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={!!fieldErrors.email}
+          />
+          {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Input
+            type="password"
+            placeholder="Password"
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={!!fieldErrors.password}
+          />
+          {fieldErrors.password && (
+            <p className="text-destructive text-sm">{fieldErrors.password}</p>
+          )}
+        </div>
 
         {error && <p className="text-destructive text-sm">{error}</p>}
 
@@ -100,16 +144,12 @@ export function AuthForm() {
 
       <p className="text-center text-muted-foreground text-sm">
         {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
-        <button
-          type="button"
+        <Link
+          href={mode === 'signup' ? '/login' : '/register'}
           className="font-medium text-foreground underline-offset-4 hover:underline"
-          onClick={() => {
-            setError(null)
-            setMode(mode === 'signup' ? 'signin' : 'signup')
-          }}
         >
           {mode === 'signup' ? 'Sign in' : 'Sign up'}
-        </button>
+        </Link>
       </p>
     </div>
   )

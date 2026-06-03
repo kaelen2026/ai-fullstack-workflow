@@ -4,10 +4,9 @@ import { Check, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { AuthForm } from '@/components/auth-form'
 import { useSession } from '@/lib/auth-client'
 
-export default function LoginPage() {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { data: session, isPending } = useSession()
 
@@ -36,9 +35,7 @@ export default function LoginPage() {
           </Link>
         </div>
       </header>
-      <main className="flex flex-1 items-center justify-center px-6 py-16">
-        <AuthForm />
-      </main>
+      <main className="flex flex-1 items-center justify-center px-6 py-16">{children}</main>
     </div>
   )
 }
