@@ -1,6 +1,6 @@
+import * as schema from '@repo/db/schema'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import * as schema from '../src/core/db/schema'
 import { createTestCaller } from './helpers/caller'
 import { createTestDb, seedUser, truncateAll } from './helpers/db'
 

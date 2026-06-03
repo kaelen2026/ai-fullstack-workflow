@@ -12,27 +12,22 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "check-types": "tsc --noEmit",
     "cf-typegen": "wrangler types",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",
+    "@repo/db": "workspace:*",
     "@trpc/server": "catalog:",
     "better-auth": "catalog:",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "catalog:",
     "hono": "^4.10.4",
-    "postgres": "^3.4.7",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240909.0",
     "@repo/typescript-config": "workspace:*",
-    "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.6",
+    "postgres": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "^4.40.0"

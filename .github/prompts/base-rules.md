@@ -30,7 +30,7 @@
   - `workflow.md`——分支 / 提交 / PR / 合并 / DB generate-migrate 流程；
   - `api-design.md`——tRPC 过程的 query/mutation、auth、zod 校验、按 `ctx.user.id` scope、`TRPCError`、web↔api 类型契约；
 - `DESIGN.md`——所有视觉 / UI 决策的权威源（Apple HIG 极简）。做任何 UI 改动前必读；QA/review 时对不符合处要 flag。
-- 项目跑 **Cloudflare Workers**（API：Hono+tRPC+better-auth；Web：Next.js via OpenNext），Postgres 经 Hyperdrive。命令用 **pnpm + Turborepo**：`pnpm lint` / `pnpm check-types` / `pnpm build`；改模块 schema（`apps/api/src/modules/<name>/<name>.schema.ts`）后走 `pnpm db:generate` → `pnpm db:migrate`。
+- 项目跑 **Cloudflare Workers**（API：Hono+tRPC+better-auth；Web：Next.js via OpenNext），Postgres 经 Hyperdrive。命令用 **pnpm + Turborepo**：`pnpm lint` / `pnpm check-types` / `pnpm build`；改表 schema（`packages/db/src/schema/<name>.ts`，即 `@repo/db`）后走 `pnpm db:generate` → `pnpm db:migrate`。
 
 ## 工具与命令陷阱
 

@@ -1,9 +1,9 @@
 import { trpcServer } from '@hono/trpc-server'
+import { createDb } from '@repo/db'
 import { type Context, Hono, type Next } from 'hono'
 import { cors } from 'hono/cors'
 import type { Bindings } from './bindings'
 import { createAuth } from './core/auth'
-import { createDb } from './core/db'
 import { appRouter } from './core/trpc/router'
 import { createContext } from './core/trpc/trpc'
 

@@ -1,8 +1,8 @@
+import type { Database } from '@repo/db'
+import * as schema from '@repo/db/schema'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import type { Database } from '../../src/core/db'
-import * as schema from '../../src/core/db/schema'
 
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/app_test'

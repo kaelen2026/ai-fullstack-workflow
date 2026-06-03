@@ -30,6 +30,12 @@ catalog:
   # Validation
   zod: ^4.1.12
 
+  # Database (shared by @repo/db + @repo/api)
+  drizzle-orm: ^0.45.2
+  drizzle-kit: ^0.31.6
+  postgres: ^3.4.7
+  dotenv: ^17.2.3
+
   # tRPC + React Query
   "@trpc/server": ^11.7.1
   "@trpc/client": ^11.7.1

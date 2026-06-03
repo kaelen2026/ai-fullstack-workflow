@@ -3,10 +3,10 @@ import postgres from 'postgres'
 import * as schema from './schema'
 
 /**
- * Build a Drizzle client for a single Worker request.
+ * Build a Drizzle client for a single connection string.
  *
- * On Workers there is no module-scope env, and Hyperdrive hands us a fresh
- * connection string per request. Hyperdrive does the real pooling, so the
+ * On Workers there is no module-scope env, and Hyperdrive hands the caller a
+ * fresh connection string per request. Hyperdrive does the real pooling, so the
  * driver is configured for short-lived, non-prepared connections.
  */
 export function createDb(connectionString: string) {
@@ -18,5 +18,9 @@ export function createDb(connectionString: string) {
   return drizzle(sql, { schema })
 }
 
-export { schema }
 export type Database = ReturnType<typeof createDb>
+
+export * from './schema'
+// The schema namespace (for `drizzle(sql, { schema })`-style consumers and the
+// better-auth adapter) plus every table/type as a named export.
+export { schema }

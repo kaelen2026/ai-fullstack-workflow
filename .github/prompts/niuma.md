@@ -32,7 +32,7 @@ workflow 已经把对应分支检出到当前工作目录（PR 类事件 → PR 
   - Issue / 主仓事件 → 从 `dev` 切 `niuma/<英文 slug>-<sha7>`，改完提 PR **回 `dev`**，PR 链接贴回原 Issue；
   - 召唤者明确指定时按召唤者来（"在这个 feature 分支上直接 push""帮我 rebase 解冲突"等）；
   - fork PR 没有 push 权限，不要硬试，给可直接 apply 的 patch / 步骤即可。
-  - 提 PR 前必跑 `pnpm lint && pnpm check-types && pnpm build`（CI 的同款检查），全过再提。涉及模块 schema（`apps/api/src/modules/<name>/<name>.schema.ts`）改动按 base-rules 的 DB 流程走 `pnpm db:generate` → `pnpm db:migrate`。
+  - 提 PR 前必跑 `pnpm lint && pnpm check-types && pnpm build`（CI 的同款检查），全过再提。涉及表 schema（`packages/db/src/schema/<name>.ts`，即 `@repo/db`）改动按 base-rules 的 DB 流程走 `pnpm db:generate` → `pnpm db:migrate`。
 - **派活**：创建 Issue 打对应 label 拉起现成 workflow；要拉并发牛马处理子任务就给 Issue 打 `niuma` label（**不能在评论里 @niuma**——自己 @ 自己已被过滤，子任务上下文必须写在 Issue body 里）。
 - **合 PR**：默认不主动合。仅当召唤者**显式要求合并**（"合了它""直接合""merge it"这类字面意图）+ 满足下方「合并 PR」全部条件时，代召唤者执行。
 

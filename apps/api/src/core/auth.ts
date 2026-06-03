@@ -1,7 +1,7 @@
+import { type Database, schema } from '@repo/db'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import type { Bindings } from '../bindings'
-import { type Database, schema } from './db'
 import { resetPasswordEmail, sendEmail } from './email'
 
 /**
