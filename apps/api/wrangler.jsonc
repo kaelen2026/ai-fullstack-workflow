@@ -12,9 +12,13 @@
   // BETTER_AUTH_URL is the public origin of THIS api (where /api/auth/* lives);
   // an https:// value flips better-auth to cross-site Secure cookies (src/core/auth.ts).
   // Previews override it via `--var BETTER_AUTH_URL:...` in the preview workflow.
+  // EMAIL_FROM is the transactional-email From address (RESEND_API_KEY is a
+  // secret). The default uses Resend's shared onboarding sender, which works
+  // without verifying a domain — swap for your own domain in prod.
   "vars": {
     "CORS_ORIGIN": "http://localhost:3000",
-    "BETTER_AUTH_URL": "http://localhost:3001"
+    "BETTER_AUTH_URL": "http://localhost:3001",
+    "EMAIL_FROM": "Todos <onboarding@resend.dev>"
   },
   "hyperdrive": [
     {
@@ -33,7 +37,8 @@
       "name": "ai-fullstack-workflow-api-dev",
       "vars": {
         "CORS_ORIGIN": "https://dev.w3ctech.dev",
-        "BETTER_AUTH_URL": "https://dev-api.w3ctech.dev"
+        "BETTER_AUTH_URL": "https://dev-api.w3ctech.dev",
+        "EMAIL_FROM": "Todos <onboarding@resend.dev>"
       },
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "125cdd01b2f24745af731c06045113dd" }],
       "routes": [{ "pattern": "dev-api.w3ctech.dev", "custom_domain": true }]
@@ -42,7 +47,8 @@
       "name": "ai-fullstack-workflow-api",
       "vars": {
         "CORS_ORIGIN": "https://w3ctech.dev",
-        "BETTER_AUTH_URL": "https://api.w3ctech.dev"
+        "BETTER_AUTH_URL": "https://api.w3ctech.dev",
+        "EMAIL_FROM": "Todos <onboarding@resend.dev>"
       },
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "082f60216f024bb392dc84cacfde1514" }],
       "routes": [{ "pattern": "api.w3ctech.dev", "custom_domain": true }]

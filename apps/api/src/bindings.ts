@@ -8,6 +8,9 @@ import type { Hyperdrive } from '@cloudflare/workers-types'
  * - BETTER_AUTH_URL: public origin of this API (where /api/auth/* is served)
  * - BETTER_AUTH_SECRET: signing secret for sessions (secret)
  * - GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: Google OAuth credentials (secret)
+ * - RESEND_API_KEY: Resend API key for transactional email (secret; optional in
+ *   dev — when unset, emails are logged to the console instead of sent)
+ * - EMAIL_FROM: From address for transactional email (var, e.g. "Todos <noreply@…>")
  */
 export type Bindings = {
   HYPERDRIVE: Hyperdrive
@@ -16,4 +19,6 @@ export type Bindings = {
   BETTER_AUTH_SECRET: string
   GOOGLE_CLIENT_ID: string
   GOOGLE_CLIENT_SECRET: string
+  RESEND_API_KEY: string
+  EMAIL_FROM: string
 }

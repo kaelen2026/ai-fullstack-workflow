@@ -11,3 +11,8 @@ BETTER_AUTH_SECRET=
 # Authorized redirect URI: <BETTER_AUTH_URL>/api/auth/callback/google
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+
+# Resend API key for transactional email (password reset). Optional in dev —
+# when unset, the reset email is logged to the wrangler console instead of sent,
+# so you can copy the reset link from there. Get one at https://resend.com.
+RESEND_API_KEY=
