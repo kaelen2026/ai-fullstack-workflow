@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import type { Bindings } from '../bindings'
 import { type Database, schema } from './db'
+import { resetPasswordEmail, sendEmail } from './email'
 
 /**
  * Build a better-auth instance for a single Worker request.
@@ -41,7 +42,20 @@ export function createAuth(db: Database, env: Bindings) {
         verification: schema.verification,
       },
     }),
-    emailAndPassword: { enabled: true },
+    emailAndPassword: {
+      enabled: true,
+      // `url` is the API reset link; clicking it validates the token and
+      // redirects to the web `redirectTo` (the /reset-password page) with the
+      // token appended. With no RESEND_API_KEY, sendEmail logs it (dev).
+      sendResetPassword: async ({ user, url }) => {
+        // Dev convenience: without a Resend key, print the link so the flow is
+        // testable from the console (sendEmail then just logs that it skipped).
+        if (!env.RESEND_API_KEY) {
+          console.log(`[auth] Password reset link for ${user.email}:\n${url}`)
+        }
+        await sendEmail(env, { to: user.email, ...resetPasswordEmail(url) })
+      },
+    },
     socialProviders,
     advanced: useSecureCookies
       ? {
