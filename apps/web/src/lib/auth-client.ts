@@ -10,4 +10,5 @@ export const authClient = createAuthClient({
   fetchOptions: { credentials: 'include' },
 })
 
-export const { signIn, signUp, signOut, useSession } = authClient
+export const { signIn, signUp, signOut, useSession, requestPasswordReset, resetPassword } =
+  authClient

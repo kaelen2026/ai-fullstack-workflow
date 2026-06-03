@@ -122,6 +122,16 @@ export function AuthForm({ defaultMode = 'signin' }: { defaultMode?: Mode } = {}
           {fieldErrors.password && (
             <p className="text-destructive text-sm">{fieldErrors.password}</p>
           )}
+          {mode === 'signin' && (
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-destructive text-sm">{error}</p>}
